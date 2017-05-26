@@ -16,7 +16,7 @@ H = 10
 W = 10
 N_STATES = H*W
 N_ACTIONS = 5
-GAMMA = 0.8
+GAMMA = 0.5
 # with probability of ACT_RAND not following the action given
 ACT_RAND = 0.3
 R_MAX = 10
