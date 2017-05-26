@@ -56,6 +56,11 @@ def heatmap2d(hm_mat, title=''):
 
 
 def heatmap3d(hm_mat, title=''):
+  """
+  Credit:
+    https://stackoverflow.com/questions/14061061/how-can-i-render-3d-histograms-in-python
+  """
+
   from mpl_toolkits.mplot3d import Axes3D
   import matplotlib.pyplot as plt
   import numpy as np
