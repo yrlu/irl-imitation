@@ -103,12 +103,12 @@ v_mat = get_values_mat(gw, vi.get_values())
 
 print 'show values map. any key to continue'
 # plt.subplot(2,2,1)
-img_utils.heatmap2d(v_mat)
+img_utils.heatmap2d(v_mat, 'Value Map - Ground Truth')
 
 r_mat = get_reward_mat(gw)
 print 'show rewards map. any key to continue'
 # plt.subplot(2,2,2)
-img_utils.heatmap2d(r_mat)
+img_utils.heatmap2d(r_mat, 'Reward Map - Ground Truth')
 
 
 # print gw.get_transition_states_and_probs((0,0), 0)
@@ -226,8 +226,8 @@ rewards = normalize(rewards)
 # print rewards
 # img_utils.heatmap2d(np.reshape(sol['x'][:N_STATES], (H,W), order='F'))
 # plt.subplot(2,2,3)
-img_utils.heatmap2d(np.reshape(rewards*R_MAX, (H,W), order='F'))
-
+img_utils.heatmap2d(np.reshape(rewards*R_MAX, (H,W), order='F'), 'Reward Map - Recovered')
+img_utils.heatmap3d(np.reshape(rewards*R_MAX, (H,W), order='F'), 'Reward Map - Recovered')
 
 # # formulate linear IRL problem
 # A = np.zeros((2*N_STATES*(N_ACTIONS-1) + N_STATES*2, N_STATES*2))

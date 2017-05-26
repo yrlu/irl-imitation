@@ -31,14 +31,16 @@ def show_img(img):
   raw_input()
 
 
-def heatmap2d(hm_mat):
+def heatmap2d(hm_mat, title=''):
   """
   Display heatmap
   input:
     hm_mat:   mxn 2d np array
   """
   print hm_mat.shape, hm_mat.dtype
+  fig = plt.figure()
   plt.clf()
+  fig.suptitle(title, fontsize=20)
   plt.imshow(hm_mat, cmap='hot', interpolation='nearest')
   # plt.ion()
   
@@ -53,7 +55,7 @@ def heatmap2d(hm_mat):
   # raw_input()
 
 
-def heatmap3d(hm_mat):
+def heatmap3d(hm_mat, title=''):
   from mpl_toolkits.mplot3d import Axes3D
   import matplotlib.pyplot as plt
   import numpy as np
@@ -70,6 +72,8 @@ def heatmap3d(hm_mat):
   # Create a figure for plotting the data as a 3D histogram.
   #
   fig = plt.figure()
+  plt.clf()
+  fig.suptitle(title, fontsize=20)
   ax = fig.add_subplot(111, projection='3d')
   #
   # Create an X-Y mesh of the same dimension as the 2D data. You can
