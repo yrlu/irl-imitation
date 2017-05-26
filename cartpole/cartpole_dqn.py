@@ -14,7 +14,7 @@ import pickle
 PARSER = argparse.ArgumentParser(description=None)
 PARSER.add_argument('-d', '--device', default='cpu', type=str, help='choose device: cpu/gpu')
 PARSER.add_argument('-e', '--episodes', default=150, type=int, help='number of episodes')
-PARSER.add_argument('-m', '--model_dir', default='cartpole-model', type=str, help='model directory (no slash at the end)')
+PARSER.add_argument('-m', '--model_dir', default='cartpole-model/', type=str, help='model directory')
 PARSER.add_argument('-t', '--train', default=False, type=str, help='train for [number of episodes] IF MODEL EXISTS')
 ARGS = PARSER.parse_args()
 print ARGS
@@ -39,8 +39,8 @@ EPOCH_SIZE = 100
 TRAIN = ARGS.train
 
 MODEL_DIR = ARGS.model_dir
-MODEL_PATH = MODEL_DIR + '/model'
-MEMORY_PATH = MODEL_DIR + '/memory.p'
+MODEL_PATH = MODEL_DIR + 'model'
+MEMORY_PATH = MODEL_DIR + 'memory.p'
 
 
 def train(agent, exprep, env):
@@ -105,6 +105,7 @@ else:
   history = [e_length for e_length in train(agent, exprep, env)]
   saver.save(sess, MODEL_PATH)
   pickle.dump(exprep, open(MEMORY_PATH, "wb"))
+  pickle.dump(agent, open(MODEL_PATH, "wb"))
   print 'saved model'
   # plot
   import matplotlib.pyplot as plt

@@ -77,8 +77,8 @@ class DQNAgent():
       self.optimizer = tf.train.AdamOptimizer(self.lr)
       self.train_op = self.optimizer.minimize(self.loss, global_step=tf.contrib.framework.get_global_step())
 
-  def get_action_values(self, state, sess):
-    actions = sess.run(self.q_values, feed_dict={self.state_input: [state]})
+  def get_action_values(self, state):
+    actions = self.sess.run(self.q_values, feed_dict={self.state_input: [state]})
     return actions
 
   def get_optimal_action(self, state):
