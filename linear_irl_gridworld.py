@@ -1,26 +1,36 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import argparse
 
 import img_utils
-import gridworld
-import value_iteration
+from mdp import gridworld
+from mdp import value_iteration
 from lp_irl import *
 
+PARSER = argparse.ArgumentParser(description=None)
+PARSER.add_argument('-l', '--l1', default=10, type=float, help='l1 regularization')
+PARSER.add_argument('-g', '--gamma', default=0.5, type=float, help='discount factor')
+PARSER.add_argument('-r', '--r_max', default=10, type=float, help='maximum value of reward')
+PARSER.add_argument('-a', '--act_random', default=0.3, type=float, help='probability of acting randomly')
+ARGS = PARSER.parse_args()
+print ARGS
 
-H = 10
-W = 10
-N_STATES = H * W
-N_ACTIONS = 5
-GAMMA = 0.5
-# with probability of ACT_RAND not following the action given
-ACT_RAND = 0.3
-R_MAX = 10
+
+GAMMA = ARGS.gamma
+ACT_RAND = ARGS.act_random
+R_MAX = ARGS.r_max
+L1 = ARGS.l1
 
 
 def main():
   """
   Recover gridworld reward using linear programming IRL
   """
+
+  H = 10
+  W = 10
+  N_STATES = H * W
+  N_ACTIONS = 5
 
   # init the gridworld
   grid = [['0', '0', '0', '0', '0', '0', '0', '0', '0', '0'],
@@ -69,7 +79,7 @@ def main():
     policy[i] = vi.get_action(gw.idx2pos(i))
 
   # solve for the rewards
-  rewards = lp_irl(P_a, policy, gamma=0.5, l1=10, R_max=R_MAX)
+  rewards = lp_irl(P_a, policy, gamma=GAMMA, l1=L1, R_max=R_MAX)
 
   # display recoverred rewards
   print 'show recoverred rewards map. any key to continue'

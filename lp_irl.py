@@ -33,14 +33,16 @@ def lp_irl(trans_probs, policy, gamma=0.5, l1=10, R_max=10):
   """
   print np.shape(trans_probs)
   N_STATES, _, N_ACTIONS = np.shape(trans_probs)
-  print N_STATES, N_ACTIONS
+  N_STATES = int(N_STATES)
+  N_ACTIONS = int(N_ACTIONS)
+
   # Formulate a linear IRL problem
   A = np.zeros([2 * N_STATES * (N_ACTIONS + 1), 3 * N_STATES])
   b = np.zeros([2 * N_STATES * (N_ACTIONS + 1)])
   c = np.zeros([3 * N_STATES])
 
   for i in range(N_STATES):
-    a_opt = policy[i]
+    a_opt = int(policy[i])
     tmp_inv = np.linalg.inv(np.identity(N_STATES) - gamma * trans_probs[:, :, a_opt])
 
     cnt = 0
