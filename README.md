@@ -1,8 +1,11 @@
 # irl-imitation
 Implementations of selected inverse reinforcement learning / imitation learning algorithms in Python
 
+#### Algorithms implemented 
 
-## Linear Inverse Reinforcement Learning
+- [linear inverse reinforcement learning (Ng & Russell 2000)](#linear-inverse-reinforcement-learning)
+
+## Linear inverse reinforcement learning
 
 - Following Ng & Russell 2000 paper: [Algorithms for Inverse Reinforcement Learning](http://ai.stanford.edu/~ang/papers/icml00-irl.pdf)
 
