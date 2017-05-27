@@ -1,7 +1,7 @@
 import unittest
 import sys
 # if "../" not in sys.path:
-  # sys.path.append("../") 
+# sys.path.append("../")
 # from envs import gridworld
 import gridworld
 import value_iteration
@@ -27,7 +27,7 @@ class ValueIterationAgentTest(unittest.TestCase):
   def test_eval_policy(self):
     print 'Show evaluation of the optimal policy:'
     self.gw_non_deterministic.display_value_grid(
-      self.agent.eval_policy_dist(self.agent.get_policy_dist()))
+        self.agent.eval_policy_dist(self.agent.get_policy_dist()))
 
   def test_show_policy(self):
     print 'Show policy learned by value iteration:'

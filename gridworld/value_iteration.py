@@ -45,11 +45,10 @@ class ValueIterationAgent(object):
         for a in actions:
           P_s1sa = mdp.get_transition_states_and_probs(s, a)
           R_sas1 = [mdp.get_reward(s1) for s1 in [p[0] for p in P_s1sa]]
-          v_s.append(sum([P_s1sa[s1_id][1] * (mdp.get_reward(s) + gamma * \
-                     values_tmp[P_s1sa[s1_id][0]]) for s1_id in range(len(P_s1sa))]))
+          v_s.append(sum([P_s1sa[s1_id][1] * (mdp.get_reward(s) + gamma *
+                                              values_tmp[P_s1sa[s1_id][0]]) for s1_id in range(len(P_s1sa))]))
         # V(s) = max_{a} \sum_{s'} P(s'| s, a) (R(s,a,s') + \gamma V(s'))
         self.values[s] = max(v_s)
-
 
   def get_values(self):
     """
@@ -62,9 +61,8 @@ class ValueIterationAgent(object):
     """
     returns qvalue of (state, action)
     """
-    return sum([P_s1_s_a*(self.mdp.get_reward_sas(s, a, s1) + self.gamma*self.values[s1]) 
+    return sum([P_s1_s_a * (self.mdp.get_reward_sas(s, a, s1) + self.gamma * self.values[s1])
                 for s1, P_s1_s_a in self.mdp.get_transition_states_and_probs(state, action)])
-
 
   def eval_policy_dist(self, policy, iterations=100):
     """
@@ -90,8 +88,8 @@ class ValueIterationAgent(object):
         # v(s) = \sum_{a\in A} \pi(a|s) (R(s,a,s') + \gamma \sum_{s'\in S}
         # P(s'| s, a) v(s'))
         values[s] = sum([policy[s][i][1] * (self.mdp.get_reward(s) + self.gamma * sum([s1_p * values_tmp[s1]
-                    for s1, s1_p in self.mdp.get_transition_states_and_probs(s, actions[i])]))
-                    for i in range(len(actions))])
+                                                                                       for s1, s1_p in self.mdp.get_transition_states_and_probs(s, actions[i])]))
+                         for i in range(len(actions))])
     return values
 
   def get_optimal_policy(self):

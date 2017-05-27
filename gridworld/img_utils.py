@@ -42,7 +42,7 @@ def heatmap2d(hm_mat, title=''):
   plt.clf()
   fig.suptitle(title, fontsize=20)
   plt.imshow(hm_mat, cmap='hot', interpolation='nearest')
-  # plt.ion()
+  plt.ion()
   
   plt.colorbar()
   for y in range(hm_mat.shape[0]):
@@ -52,7 +52,7 @@ def heatmap2d(hm_mat, title=''):
                verticalalignment='center',
                )
   plt.show()
-  # raw_input()
+  raw_input()
 
 
 def heatmap3d(hm_mat, title=''):

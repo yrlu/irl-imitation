@@ -7,15 +7,10 @@
 #
 # MIT License
 
-import mdp
-import env
 import numpy as np
-import unittest
-import matplotlib.pyplot as plt
 
 
-
-class GridWorld(mdp.MDP, env.Env):
+class GridWorld(object):
   """
   Grid world environment
   """
@@ -68,7 +63,7 @@ class GridWorld(mdp.MDP, env.Env):
       return [4]
 
     actions = []
-    for i in range(len(self.actions)-1):
+    for i in range(len(self.actions) - 1):
       inc = self.neighbors[i]
       a = self.actions[i]
       nei_s = (state[0] + inc[0], state[1] + inc[1])
@@ -117,7 +112,6 @@ class GridWorld(mdp.MDP, env.Env):
     else:
       return 0
 
-
   def get_transition_states_and_probs(self, state, action):
     """
     get all the possible transition states and their probabilities with [action] on [state]
@@ -129,7 +123,6 @@ class GridWorld(mdp.MDP, env.Env):
     """
     if self.is_terminal(tuple(state)):
       return [(tuple(state), 1)]
-
 
     if self.trans_prob == 1:
       inc = self.neighbors[action]
@@ -182,7 +175,6 @@ class GridWorld(mdp.MDP, env.Env):
     """
     self._cur_state = start_pos
 
-
   def get_current_state(self):
     return self._cur_state
 
@@ -203,14 +195,14 @@ class GridWorld(mdp.MDP, env.Env):
       return self._cur_state, action, self._cur_state, self.get_reward(self._cur_state), True
 
     st_prob = self.get_transition_states_and_probs(self._cur_state, action)
-    
-    sampled_idx = np.random.choice(np.arange(0,len(st_prob)), p=[prob for st, prob in st_prob])
+
+    sampled_idx = np.random.choice(np.arange(0, len(st_prob)), p=[prob for st, prob in st_prob])
     last_state = self._cur_state
     next_state = st_prob[sampled_idx][0]
     reward = self.get_reward(last_state)
     self._cur_state = next_state
     return last_state, action, next_state, reward, False
-  
+
   ###########################################
   # Policy Evaluation for Model-free Agents #
   ###########################################
@@ -229,20 +221,18 @@ class GridWorld(mdp.MDP, env.Env):
       values[s] = agent.get_value(s)
     return values
 
-
   def get_qvalues(self, agent):
     states = self.get_states()
     q_values = {}
     for s in states:
       for a in self.get_actions(s):
-        q_values[(s,a)] = agent.get_qvalue(s,a)
+        q_values[(s, a)] = agent.get_qvalue(s, a)
     return q_values
 
-  ###############
-  # For Display #
-  ###############
+  ###################################
+  # For Display in the command line #
+  ###################################
 
-  
   def display_qvalue_grid(self, qvalues):
     print "==Display q-value grid=="
 
@@ -254,14 +244,13 @@ class GridWorld(mdp.MDP, env.Env):
         tmp_str = ""
         for a in self.get_actions(s):
           tmp_str = tmp_str + self.dirs[a]
-          tmp_str = tmp_str + str(' {:.2f} '.format(qvalues[(s,a)]))
+          tmp_str = tmp_str + str(' {:.2f} '.format(qvalues[(s, a)]))
           # print tmp_str
         qvalues_grid[s[0]][s[1]] = tmp_str
 
     row_format = '{:>40}' * (len(self.grid[0]))
     for row in qvalues_grid:
-      print row_format.format(*row)      
-
+      print row_format.format(*row)
 
   def display_value_grid(self, values):
     """
@@ -296,3 +285,48 @@ class GridWorld(mdp.MDP, env.Env):
     row_format = '{:>20}' * (len(self.grid[0]))
     for row in policy_grid:
       print row_format.format(*row)
+
+  #######################
+  # Some util functions #
+  #######################
+
+  def get_values_mat(self, values):
+    """
+    inputs:
+      values: a dictionary {<state, value>}
+    """
+    shape = np.shape(self.grid)
+    v_mat = np.zeros(shape)
+    for i in range(shape[0]):
+      for j in range(shape[1]):
+        v_mat[i, j] = values[(i, j)]
+    return v_mat
+
+  def get_reward_mat(self):
+    """
+    Get reward matrix from gridworld
+    """
+    shape = np.shape(self.grid)
+    r_mat = np.zeros(shape)
+    for i in range(shape[0]):
+      for j in range(shape[1]):
+        r_mat[i, j] = float(self.grid[i][j])
+    return r_mat
+
+  def pos2idx(self, pos):
+    """
+    input:
+      column-major 2d position
+    returns:
+      1d index
+    """
+    return pos[0] + pos[1] * self.height
+
+  def idx2pos(self, idx):
+    """
+    input:
+      1d idx
+    returns:
+      2d column-major position
+    """
+    return (idx % self.height, idx / self.height)
