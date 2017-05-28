@@ -16,7 +16,6 @@ PARSER = argparse.ArgumentParser(description=None)
 PARSER.add_argument('-hei', '--height', default=5, type=int, help='height of the gridworld')
 PARSER.add_argument('-wid', '--width', default=5, type=int, help='width of the gridworld')
 PARSER.add_argument('-g', '--gamma', default=0.8, type=float, help='discount factor')
-PARSER.add_argument('-r', '--r_max', default=1, type=float, help='maximum value of reward')
 PARSER.add_argument('-a', '--act_random', default=0.3, type=float, help='probability of acting randomly')
 PARSER.add_argument('-t', '--n_trajs', default=100, type=int, help='number of expert trajectories')
 PARSER.add_argument('-l', '--l_traj', default=20, type=int, help='length of expert trajectory')
@@ -31,7 +30,7 @@ print ARGS
 
 GAMMA = ARGS.gamma
 ACT_RAND = ARGS.act_random
-R_MAX = ARGS.r_max
+R_MAX = 1 # the constant r_max does not affect much the recoverred reward distribution
 H = ARGS.height
 W = ARGS.width
 N_TRAJS = ARGS.n_trajs

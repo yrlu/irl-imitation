@@ -15,11 +15,13 @@ class ValueIterationAgent(object):
 
   def __init__(self, mdp, gamma, iterations=100):
     """
-    The constructor build a value model from mdp using dynamic programming
-    ---
-    args
-      mdp:      markov decision process that is required by value iteration agent
-      gamma:    discount factor
+    The constructor builds a value model from mdp using dynamic programming
+    
+    inputs:
+      mdp       markov decision process that is required by value iteration agent
+                definitation: 
+                https://github.com/stormmax/reinforcement_learning/blob/master/envs/mdp.py
+      gamma     discount factor
     """
     self.mdp = mdp
     self.gamma = gamma
@@ -168,7 +170,7 @@ class ValueIterationAgent(object):
 
 def value_iteration(P_a, rewards, gamma, error=0.01, deterministic=True):
   """
-  static value iteration function.
+  static value iteration function. Most useful function in this repo
   
   inputs:
     P_a         NxNxN_ACTIONS transition probabilities matrix - 

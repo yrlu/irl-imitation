@@ -3,24 +3,6 @@ import numpy as np
 from scipy import misc
 import matplotlib.pyplot as plt
 
-def process_obs(obs):
-  """
-  Credits:
-    https://github.com/andreimuntean/A3C/blob/master/environment.py
-
-  Transforms the specified observation into a 47x47x1 grayscale image.
-  Returns:
-      A 47x47x1 tensor with float32 values between 0 and 1.
-  """
-  # Transform the observation into a grayscale image with values between 0 and 1. Use the simple
-  # np.mean method instead of sophisticated luminance extraction techniques since they do not seem
-  # to improve training.
-  gray_obs = obs.mean(2)
-
-  # Resize grayscale frame to a 47x47 matrix of 32-bit floats.
-  resized_obs = misc.imresize(gray_obs, (47, 47)).astype(np.float32)
-  return np.expand_dims(resized_obs, 2)
-
 
 def show_img(img):
   print img.shape, img.dtype
