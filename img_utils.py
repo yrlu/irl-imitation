@@ -37,7 +37,7 @@ def heatmap2d(hm_mat, title='', fig_n=1):
   input:
     hm_mat:   mxn 2d np array
   """
-  print hm_mat.shape, hm_mat.dtype
+  print 'map shape: {}, data type: {}'.format(hm_mat.shape, hm_mat.dtype)
   fig = plt.figure(fig_n)
   plt.clf()
   fig.suptitle(title, fontsize=20)
@@ -52,6 +52,7 @@ def heatmap2d(hm_mat, title='', fig_n=1):
                verticalalignment='center',
                )
   plt.show()
+  print 'press any key to continue'
   raw_input()
 
 
@@ -64,6 +65,7 @@ def heatmap3d(hm_mat, title=''):
   from mpl_toolkits.mplot3d import Axes3D
   import matplotlib.pyplot as plt
   import numpy as np
+  print 'map shape: {}, data type: {}'.format(hm_mat.shape, hm_mat.dtype)
   fig = plt.figure(1)
   #
   # Assuming you have "2D" dataset like the following that you need
@@ -105,4 +107,5 @@ def heatmap3d(hm_mat, title=''):
   # Finally, display the plot.
   #
   plt.show()
+  print 'press any key to continue'
   raw_input()

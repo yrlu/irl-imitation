@@ -24,7 +24,7 @@ PARSER.add_argument('--rand_start', dest='rand_start', action='store_true', help
 PARSER.add_argument('--no-rand_start', dest='rand_start',action='store_false', help='when sampling trajectories, fix start positions')
 PARSER.set_defaults(rand_start=False)
 PARSER.add_argument('-lr', '--learning_rate', default=0.01, type=float, help='learning rate')
-PARSER.add_argument('-ni', '--n_iters', default=300, type=int, help='number of iterations')
+PARSER.add_argument('-ni', '--n_iters', default=20, type=int, help='number of iterations')
 ARGS = PARSER.parse_args()
 print ARGS
 
@@ -112,9 +112,6 @@ def main():
   # rmap_gt is the ground truth for rewards
   rmap_gt = np.zeros([H, W])
   rmap_gt[H-1, W-1] = R_MAX
-  # rmap_gt[0, W-1] = R_MAX
-  # rmap_gt[H-1, 0] = R_MAX
-
 
   gw = gridworld.GridWorld(rmap_gt, {}, 1 - ACT_RAND)
   vi = value_iteration.ValueIterationAgent(gw, GAMMA, 100)
@@ -132,13 +129,13 @@ def main():
 
   # other two features. due to the linear nature, 
   # the following two features might not work as well as the identity.
-
   # feat_map = feature_basis(gw)
   # feat_map = feature_coord(gw)
 
   trajs = generate_demonstrations(gw, policy, n_trajs=N_TRAJS, len_traj=L_TRAJ, rand_start=RAND_START)
   rewards = maxent(feat_map, P_a, GAMMA, trajs, LEARNING_RATE, N_ITERS)
   img_utils.heatmap2d(np.reshape(rewards, (H,W), order='F'), 'Reward Map - Recovered')
+  img_utils.heatmap3d(np.reshape(rewards, (H,W), order='F'), 'Reward Map - Recovered')
 
 
 if __name__ == "__main__":
