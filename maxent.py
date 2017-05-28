@@ -73,7 +73,6 @@ def maxent(feat_map, P_a, gamma, trajs, lr, n_iters):
     for step in episode:
       feat_exp += feat_map[step.cur_state,:]
   feat_exp = feat_exp/len(trajs)
-  print feat_exp
 
   # training
   for iteration in range(n_iters):

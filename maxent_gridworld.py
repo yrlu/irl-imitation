@@ -36,8 +36,6 @@ W = ARGS.width
 N_TRAJS = ARGS.n_trajs
 L_TRAJ = ARGS.l_traj
 RAND_START = ARGS.rand_start
-print RAND_START
-# RAND_START = False
 LEARNING_RATE = ARGS.learning_rate
 N_ITERS = ARGS.n_iters
 
@@ -86,7 +84,7 @@ def generate_demonstrations(gw, policy, n_trajs=100, len_traj=20, rand_start=Fal
     if rand_start:
       # override start_pos
       start_pos = [np.random.randint(0, gw.height), np.random.randint(0, gw.width)]
-      print start_pos
+
     episode = []
     gw.reset(start_pos)
     cur_state = start_pos
@@ -120,8 +118,9 @@ def main():
   P_a = gw.get_transition_mat()
 
   values, policy = value_iteration.value_iteration(P_a, rewards_gt, GAMMA, error=0.01, deterministic=True)
+  img_utils.heatmap2d(rmap_gt, 'Rewards Map - Ground Truth')
   img_utils.heatmap2d(np.reshape(values, (H,W), order='F'), 'Value Map - Ground Truth')
-  img_utils.heatmap2d(np.reshape(policy, (H,W), order='F'), 'Policy - Ground Truth')
+  
   
   # use identity matrix as feature
   feat_map = np.eye(N_STATES)
