@@ -31,17 +31,17 @@ def show_img(img):
   raw_input()
 
 
-def heatmap2d(hm_mat, title=''):
+def heatmap2d(hm_mat, title='', fig_n=1):
   """
   Display heatmap
   input:
     hm_mat:   mxn 2d np array
   """
   print hm_mat.shape, hm_mat.dtype
-  fig = plt.figure()
+  fig = plt.figure(fig_n)
   plt.clf()
   fig.suptitle(title, fontsize=20)
-  plt.imshow(hm_mat, cmap='hot', interpolation='nearest')
+  plt.imshow(hm_mat, interpolation='nearest')
   plt.ion()
   
   plt.colorbar()
@@ -64,6 +64,7 @@ def heatmap3d(hm_mat, title=''):
   from mpl_toolkits.mplot3d import Axes3D
   import matplotlib.pyplot as plt
   import numpy as np
+  fig = plt.figure(1)
   #
   # Assuming you have "2D" dataset like the following that you need
   # to plot.

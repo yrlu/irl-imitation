@@ -24,10 +24,18 @@ class GridWorld(object):
     """
     self.height = len(grid)
     self.width = len(grid[0])
+    self.n_states = self.height*self.width
+    for i in range(self.height):
+      for j in range(self.width):
+        grid[i][j] = str(grid[i][j])
+
+
     self.terminals = terminals
     self.grid = grid
     self.neighbors = [(0, 1), (0, -1), (1, 0), (-1, 0), (0, 0)]
     self.actions = [0, 1, 2, 3, 4]
+    self.n_actions = len(self.actions)
+    # self.dirs = {0: 's', 1: 'r', 2: 'l', 3: 'd', 4: 'u'}
     self.dirs = {0: 'r', 1: 'l', 2: 'd', 3: 'u', 4: 's'}
     #              right,    left,   down,   up ,   stay
     # self.action_nei = {0: (0,1), 1:(0,-1), 2:(1,0), 3:(-1,0)}
@@ -134,31 +142,36 @@ class GridWorld(object):
         # if the state is invalid, stay in the current state
         return [(state, 1)]
     else:
-      action_states = self.__get_action_states(state)
-      inc = self.neighbors[action]
-      nei_s = (state[0] + inc[0], state[1] + inc[1])
-      res = []
+      # [(0, 1), (0, -1), (1, 0), (-1, 0), (0, 0)]
+      mov_probs = np.zeros([self.n_actions])
+      mov_probs[action] = self.trans_prob
+      mov_probs += (1-self.trans_prob)/self.n_actions
 
-      if nei_s[0] >= 0 and nei_s[0] < self.height and nei_s[
-              1] >= 0 and nei_s[1] < self.width and self.grid[nei_s[0]][nei_s[1]] != 'x':
-        for i in range(len(action_states)):
-          if action_states[i][0] == action:
-            res.append((action_states[i][1], self.trans_prob))
-          else:
-            res.append(
-                (action_states[i][1], (1 - self.trans_prob) / (len(action_states) - 1)))
-      else:
-        # if the action is not valid, then return uniform distribution of the valid moves.
-        for i in range(len(action_states)):
-          res.append((action_states[i][1], 1.0 / len(action_states)))
+      for a in range(self.n_actions):
+        inc = self.neighbors[a]
+        nei_s = (state[0] + inc[0], state[1] + inc[1])
+        # print nei_s
+        if nei_s[0] < 0 or nei_s[0] >= self.height or \
+           nei_s[1] < 0 or nei_s[1] >= self.width or self.grid[nei_s[0]][nei_s[1]] == 'x':
+          # if the move is invalid, accumulates the prob to the current state
+          mov_probs[self.n_actions-1] += mov_probs[a]
+          mov_probs[a] = 0
+
+      res = []
+      for a in range(self.n_actions):
+        if mov_probs[a] != 0:
+          inc = self.neighbors[a]
+          nei_s = (state[0] + inc[0], state[1] + inc[1])
+          res.append((nei_s, mov_probs[a]))
       return res
+
 
   def is_terminal(self, state):
     """
     returns
       True if the [state] is terminal
     """
-    if state in self.terminals:
+    if tuple(state) in self.terminals:
       return True
     else:
       return False
@@ -188,7 +201,7 @@ class GridWorld(object):
       action        input action
       next_state    next_state
       reward        reward on the next state
-      is_done       True/False - if the episode terminates on the next_state
+      is_done       True/False - if the agent is already on the terminal states
     """
     if self.is_terminal(self._cur_state):
       self._is_done = True
@@ -289,6 +302,30 @@ class GridWorld(object):
   #######################
   # Some util functions #
   #######################
+
+  def get_transition_mat(self):
+    """
+    get transition dynamics of the gridworld
+
+    return:
+      P_a         NxNxN_ACTIONS transition probabilities matrix - 
+                    P_a[s0, s1, a] is the transition prob of 
+                    landing at state s1 when taking action 
+                    a at state s0
+    """
+    N_STATES = self.height*self.width
+    N_ACTIONS = len(self.actions)
+    P_a = np.zeros((N_STATES, N_STATES, N_ACTIONS))
+    for si in range(N_STATES):
+      posi = self.idx2pos(si)
+      for a in range(N_ACTIONS):
+        probs = self.get_transition_states_and_probs(posi, a)
+
+        for posj, prob in probs:
+          sj = self.pos2idx(posj)
+          # Prob of si to sj given action a
+          P_a[si, sj, a] = prob
+    return P_a
 
   def get_values_mat(self, values):
     """
