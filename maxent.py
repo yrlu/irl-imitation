@@ -14,6 +14,7 @@ from cvxopt import matrix, solvers
 import mdp.gridworld as gridworld
 import mdp.value_iteration as value_iteration
 import img_utils
+from utils import *
 
 
 def compute_state_visition_freq(P_a, gamma, reward, trajs, policy):
@@ -76,7 +77,7 @@ def maxent(feat_map, P_a, gamma, trajs, lr, n_iters):
 
   # training
   for iteration in range(n_iters):
-    if iteration % 20 == 0:
+    if iteration % (n_iters/20) == 0:
       print 'iteration: {}'.format(iteration)
     
     # compute reward function
@@ -95,6 +96,6 @@ def maxent(feat_map, P_a, gamma, trajs, lr, n_iters):
     theta += lr * grad
 
   rewards = np.dot(feat_map, theta)
-  return rewards
+  return normalize(rewards)
 
 

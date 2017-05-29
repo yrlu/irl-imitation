@@ -13,29 +13,31 @@ def show_img(img):
   raw_input()
 
 
-def heatmap2d(hm_mat, title='', fig_n=1):
+def heatmap2d(hm_mat, title='', block=True):
   """
   Display heatmap
   input:
     hm_mat:   mxn 2d np array
   """
   print 'map shape: {}, data type: {}'.format(hm_mat.shape, hm_mat.dtype)
-  fig = plt.figure(fig_n)
-  plt.clf()
-  fig.suptitle(title, fontsize=20)
-  plt.imshow(hm_mat, interpolation='nearest')
-  plt.ion()
+
+
+  # plt.clf()
   
+  plt.imshow(hm_mat, interpolation='nearest')
+  plt.title(title)
   plt.colorbar()
   for y in range(hm_mat.shape[0]):
     for x in range(hm_mat.shape[1]):
-      plt.text(x, y, '%.2f' % hm_mat[y, x],
+      plt.text(x, y, '%.1f' % hm_mat[y, x],
                horizontalalignment='center',
                verticalalignment='center',
                )
-  plt.show()
-  print 'press any key to continue'
-  raw_input()
+  if block:
+    plt.ion()
+    print 'press any key to continue'
+    plt.show()
+    raw_input()
 
 
 def heatmap3d(hm_mat, title=''):
@@ -48,7 +50,7 @@ def heatmap3d(hm_mat, title=''):
   import matplotlib.pyplot as plt
   import numpy as np
   print 'map shape: {}, data type: {}'.format(hm_mat.shape, hm_mat.dtype)
-  fig = plt.figure(1)
+
   #
   # Assuming you have "2D" dataset like the following that you need
   # to plot.
@@ -61,10 +63,9 @@ def heatmap3d(hm_mat, title=''):
   #
   # Create a figure for plotting the data as a 3D histogram.
   #
-  fig = plt.figure()
-  plt.clf()
-  fig.suptitle(title, fontsize=20)
-  ax = fig.add_subplot(111, projection='3d')
+  plt.title(title, fontsize=20)
+  # _, ax = plt.subplots()
+  ax = fig.add_subplot(111, )
   #
   # Create an X-Y mesh of the same dimension as the 2D data. You can
   # think of this as the floor of the plot.
@@ -88,6 +89,7 @@ def heatmap3d(hm_mat, title=''):
   #
   # Finally, display the plot.
   #
-  plt.show()
+  plt.ion()
   print 'press any key to continue'
+  plt.show()
   raw_input()

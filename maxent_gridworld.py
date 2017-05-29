@@ -109,17 +109,14 @@ def main():
   # rmap_gt is the ground truth for rewards
   rmap_gt = np.zeros([H, W])
   rmap_gt[H-1, W-1] = R_MAX
+  # rmap_gt[H-1, 0] = R_MAX
 
   gw = gridworld.GridWorld(rmap_gt, {}, 1 - ACT_RAND)
-  vi = value_iteration.ValueIterationAgent(gw, GAMMA, 100)
-  v_mat = gw.get_values_mat(vi.get_values())
 
   rewards_gt = np.reshape(rmap_gt, H*W, order='F')
   P_a = gw.get_transition_mat()
 
-  values, policy = value_iteration.value_iteration(P_a, rewards_gt, GAMMA, error=0.01, deterministic=True)
-  img_utils.heatmap2d(rmap_gt, 'Rewards Map - Ground Truth')
-  img_utils.heatmap2d(np.reshape(values, (H,W), order='F'), 'Value Map - Ground Truth')
+  values_gt, policy_gt = value_iteration.value_iteration(P_a, rewards_gt, GAMMA, error=0.01, deterministic=True)
   
   
   # use identity matrix as feature
@@ -130,10 +127,22 @@ def main():
   # feat_map = feature_basis(gw)
   # feat_map = feature_coord(gw)
 
-  trajs = generate_demonstrations(gw, policy, n_trajs=N_TRAJS, len_traj=L_TRAJ, rand_start=RAND_START)
+  trajs = generate_demonstrations(gw, policy_gt, n_trajs=N_TRAJS, len_traj=L_TRAJ, rand_start=RAND_START)
   rewards = maxent(feat_map, P_a, GAMMA, trajs, LEARNING_RATE, N_ITERS)
-  img_utils.heatmap2d(np.reshape(rewards, (H,W), order='F'), 'Reward Map - Recovered')
-  img_utils.heatmap3d(np.reshape(rewards, (H,W), order='F'), 'Reward Map - Recovered')
+
+  values, _ = value_iteration.value_iteration(P_a, rewards, GAMMA, error=0.01, deterministic=True)
+  # plots
+  plt.subplot(1, 4, 1)
+  img_utils.heatmap2d(rmap_gt, 'Rewards Map - Ground Truth', block=False)
+  plt.subplot(1, 4, 2)
+  img_utils.heatmap2d(np.reshape(values_gt, (H,W), order='F'), 'Value Map - Ground Truth', block=False)
+  plt.subplot(1, 4, 3)
+  img_utils.heatmap2d(np.reshape(rewards, (H,W), order='F'), 'Reward Map - Recovered', block=False)
+  plt.subplot(1, 4, 4)
+  img_utils.heatmap2d(np.reshape(values, (H,W), order='F'), 'Value Map - Recovered', block=False)
+  plt.show()
+  # plt.subplot(2, 2, 4)
+  # img_utils.heatmap3d(np.reshape(rewards, (H,W), order='F'), 'Reward Map - Recovered', block=False)
 
 
 if __name__ == "__main__":
