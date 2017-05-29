@@ -33,3 +33,10 @@ $ python maxent_gridworld.py --height=10 --width=10 --gamma=0.8 --n_trajs=100 --
 ```
 
 <img src="imgs/rmap_gt_maxent_10.jpg" width="200"> <img src="imgs/vmap_gt_maxent_10.jpg" width="200"> <img src="imgs/rmap_maxent_10.jpg" width="200"> <img src="imgs/rmap_maxent_3d_10.jpg" width="200"> 
+
+```
+$ python maxent_gridworld.py --gamma=0.8 --n_trajs=400 --l_traj=50 --rand_start --learning_rate=0.01 --n_iters=20
+```
+
+<img src="imgs/maxent5_2r.jpg" width="830">
+
