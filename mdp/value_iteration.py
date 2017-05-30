@@ -214,10 +214,8 @@ def value_iteration(P_a, rewards, gamma, error=0.01, deterministic=True):
     # generate stochastic policy
     policy = np.zeros([N_STATES, N_ACTIONS])
     for s in range(N_STATES):
-      v_s = [sum([P_a[s, s1, a]*(rewards[s]+gamma*values[s1]) 
-                                  for s1 in range(N_STATES)]) 
-                                  for a in range(N_ACTIONS)]
-      policy[s,:] = v_s/sum(v_s)
+      v_s = np.array([sum([P_a[s, s1, a]*(rewards[s] + gamma*values[s1]) for s1 in range(N_STATES)]) for a in range(N_ACTIONS)])
+      policy[s,:] = np.transpose(v_s/np.sum(v_s))
     return values, policy
 
 

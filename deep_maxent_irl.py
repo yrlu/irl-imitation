@@ -170,7 +170,7 @@ def deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters):
     # compute the reward matrix
     rewards = nn_r.get_rewards(feat_map)
     # rewards = normalize(rewards)
-    # print np.reshape(rewards, (5,5), order='F')
+    print np.reshape(rewards, (5,5), order='F')
     # print nn_r.get_theta()[0]
     # print np.reshape(nn_r.get_theta()[0], (5,5), order='F')
     # img_utils.heatmap2d(np.reshape(rewards, (5,5), order='F'), '', block=True, fig_num=1)
@@ -206,6 +206,7 @@ def deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters):
 
   rewards = nn_r.get_rewards(feat_map)
   return normalize(rewards)
+  # return rewards
 
 
 

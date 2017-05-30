@@ -1,6 +1,5 @@
 """Utility functions for process and visualize images"""
 import numpy as np
-from scipy import misc
 import matplotlib.pyplot as plt
 
 

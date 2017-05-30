@@ -8,6 +8,8 @@ import img_utils
 from mdp import gridworld
 from mdp import value_iteration
 from deep_maxent_irl import *
+from maxent_irl import *
+from utils import *
 
 Step = namedtuple('Step','cur_state action next_state reward done')
 
@@ -17,12 +19,12 @@ PARSER.add_argument('-hei', '--height', default=5, type=int, help='height of the
 PARSER.add_argument('-wid', '--width', default=5, type=int, help='width of the gridworld')
 PARSER.add_argument('-g', '--gamma', default=0.9, type=float, help='discount factor')
 PARSER.add_argument('-a', '--act_random', default=0.3, type=float, help='probability of acting randomly')
-PARSER.add_argument('-t', '--n_trajs', default=100, type=int, help='number of expert trajectories')
+PARSER.add_argument('-t', '--n_trajs', default=200, type=int, help='number of expert trajectories')
 PARSER.add_argument('-l', '--l_traj', default=20, type=int, help='length of expert trajectory')
 PARSER.add_argument('--rand_start', dest='rand_start', action='store_true', help='when sampling trajectories, randomly pick start positions')
 PARSER.add_argument('--no-rand_start', dest='rand_start',action='store_false', help='when sampling trajectories, fix start positions')
-PARSER.set_defaults(rand_start=False)
-PARSER.add_argument('-lr', '--learning_rate', default=0.02, type=float, help='learning rate')
+PARSER.set_defaults(rand_start=True)
+PARSER.add_argument('-lr', '--learning_rate', default=0.01, type=float, help='learning rate')
 PARSER.add_argument('-ni', '--n_iters', default=20, type=int, help='number of iterations')
 ARGS = PARSER.parse_args()
 print ARGS
@@ -120,6 +122,12 @@ def main():
 
   values_gt, policy_gt = value_iteration.value_iteration(P_a, rewards_gt, GAMMA, error=0.01, deterministic=True)
   
+  # rewards_gt = normalize(values_gt)
+  # gw = gridworld.GridWorld(np.reshape(rewards_gt, (H,W), order='F'), {}, 1 - ACT_RAND)
+  # P_a = gw.get_transition_mat()
+  # values_gt, policy_gt = value_iteration.value_iteration(P_a, rewards_gt, GAMMA, error=0.01, deterministic=True)
+
+
   # use identity matrix as feature
   feat_map = np.eye(N_STATES)
 
@@ -130,17 +138,19 @@ def main():
 
   trajs = generate_demonstrations(gw, policy_gt, n_trajs=N_TRAJS, len_traj=L_TRAJ, rand_start=RAND_START)
   rewards = deep_maxent_irl(feat_map, P_a, GAMMA, trajs, LEARNING_RATE, N_ITERS)
+  # rewards_maxent = maxent_irl(feat_map, P_a, GAMMA, trajs, LEARNING_RATE, N_ITERS)
 
   values, _ = value_iteration.value_iteration(P_a, rewards, GAMMA, error=0.01, deterministic=True)
   # plots
   plt.figure(figsize=(20,4))
   plt.subplot(1, 4, 1)
-  img_utils.heatmap2d(rmap_gt, 'Rewards Map - Ground Truth', block=False)
+  img_utils.heatmap2d(np.reshape(rewards_gt, (H,W), order='F'), 'Rewards Map - Ground Truth', block=False)
   plt.subplot(1, 4, 2)
   img_utils.heatmap2d(np.reshape(values_gt, (H,W), order='F'), 'Value Map - Ground Truth', block=False)
   plt.subplot(1, 4, 3)
-  img_utils.heatmap2d(np.reshape(rewards, (H,W), order='F'), 'Reward Map - Recovered', block=False)
+  img_utils.heatmap2d(np.reshape(rewards, (H,W), order='F'), 'Reward Map - Deep Maxent', block=False)
   plt.subplot(1, 4, 4)
+  # img_utils.heatmap2d(np.reshape(rewards_maxent, (H,W), order='F'), 'Reward Map - Maxent', block=False)
   img_utils.heatmap2d(np.reshape(values, (H,W), order='F'), 'Value Map - Recovered', block=False)
   plt.show()
 
