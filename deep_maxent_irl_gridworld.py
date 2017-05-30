@@ -7,7 +7,7 @@ from collections import namedtuple
 import img_utils
 from mdp import gridworld
 from mdp import value_iteration
-from maxent import *
+from deep_maxent_irl import *
 
 Step = namedtuple('Step','cur_state action next_state reward done')
 
@@ -15,14 +15,14 @@ Step = namedtuple('Step','cur_state action next_state reward done')
 PARSER = argparse.ArgumentParser(description=None)
 PARSER.add_argument('-hei', '--height', default=5, type=int, help='height of the gridworld')
 PARSER.add_argument('-wid', '--width', default=5, type=int, help='width of the gridworld')
-PARSER.add_argument('-g', '--gamma', default=0.8, type=float, help='discount factor')
+PARSER.add_argument('-g', '--gamma', default=0.9, type=float, help='discount factor')
 PARSER.add_argument('-a', '--act_random', default=0.3, type=float, help='probability of acting randomly')
 PARSER.add_argument('-t', '--n_trajs', default=100, type=int, help='number of expert trajectories')
 PARSER.add_argument('-l', '--l_traj', default=20, type=int, help='length of expert trajectory')
 PARSER.add_argument('--rand_start', dest='rand_start', action='store_true', help='when sampling trajectories, randomly pick start positions')
 PARSER.add_argument('--no-rand_start', dest='rand_start',action='store_false', help='when sampling trajectories, fix start positions')
 PARSER.set_defaults(rand_start=False)
-PARSER.add_argument('-lr', '--learning_rate', default=0.01, type=float, help='learning rate')
+PARSER.add_argument('-lr', '--learning_rate', default=0.02, type=float, help='learning rate')
 PARSER.add_argument('-ni', '--n_iters', default=20, type=int, help='number of iterations')
 ARGS = PARSER.parse_args()
 print ARGS
@@ -38,32 +38,6 @@ L_TRAJ = ARGS.l_traj
 RAND_START = ARGS.rand_start
 LEARNING_RATE = ARGS.learning_rate
 N_ITERS = ARGS.n_iters
-
-def feature_coord(gw):
-  N = gw.height * gw.width
-  feat = np.zeros([N, 2])
-  for i in range(N):
-    iy, ix = gw.idx2pos(i)
-    feat[i,0] = iy
-    feat[i,1] = ix
-  return feat
-
-def feature_basis(gw):
-  """
-  Generates a NxN feature map for gridworld
-  input:
-    gw      Gridworld
-  returns
-    feat    NxN feature map - feat[i, j] is the l1 distance between state i and state j
-  """
-  N = gw.height * gw.width
-  feat = np.zeros([N, N])
-  for i in range(N):
-    for y in range(gw.height):
-      for x in range(gw.width):
-        iy, ix = gw.idx2pos(i)
-        feat[i, gw.pos2idx([y, x])] = abs(iy-y) + abs(ix-x)
-  return feat
 
 
 def generate_demonstrations(gw, policy, n_trajs=100, len_traj=20, rand_start=False, start_pos=[0,0]):
@@ -100,16 +74,44 @@ def generate_demonstrations(gw, policy, n_trajs=100, len_traj=20, rand_start=Fal
   return trajs
 
 
+def feature_coord(gw):
+  N = gw.height * gw.width
+  feat = np.zeros([N, 2])
+  for i in range(N):
+    iy, ix = gw.idx2pos(i)
+    feat[i,0] = iy
+    feat[i,1] = ix
+  return feat
+
+
+def feature_basis(gw):
+  """
+  Generates a NxN feature map for gridworld
+  input:
+    gw      Gridworld
+  returns
+    feat    NxN feature map - feat[i, j] is the l1 distance between state i and state j
+  """
+  N = gw.height * gw.width
+  feat = np.zeros([N, N])
+  for i in range(N):
+    for y in range(gw.height):
+      for x in range(gw.width):
+        iy, ix = gw.idx2pos(i)
+        feat[i, gw.pos2idx([y, x])] = abs(iy-y) + abs(ix-x)
+  return feat
+
+
 
 def main():
   N_STATES = H * W
   N_ACTIONS = 5
 
-  # init the gridworld
-  # rmap_gt is the ground truth for rewards
   rmap_gt = np.zeros([H, W])
   rmap_gt[H-1, W-1] = R_MAX
-  # rmap_gt[H-1, 0] = R_MAX
+  rmap_gt[H-1, 0] = R_MAX
+  rmap_gt[0, W-1] = R_MAX
+
 
   gw = gridworld.GridWorld(rmap_gt, {}, 1 - ACT_RAND)
 
@@ -117,7 +119,6 @@ def main():
   P_a = gw.get_transition_mat()
 
   values_gt, policy_gt = value_iteration.value_iteration(P_a, rewards_gt, GAMMA, error=0.01, deterministic=True)
-  
   
   # use identity matrix as feature
   feat_map = np.eye(N_STATES)
@@ -128,10 +129,11 @@ def main():
   # feat_map = feature_coord(gw)
 
   trajs = generate_demonstrations(gw, policy_gt, n_trajs=N_TRAJS, len_traj=L_TRAJ, rand_start=RAND_START)
-  rewards = maxent(feat_map, P_a, GAMMA, trajs, LEARNING_RATE, N_ITERS)
+  rewards = deep_maxent_irl(feat_map, P_a, GAMMA, trajs, LEARNING_RATE, N_ITERS)
 
   values, _ = value_iteration.value_iteration(P_a, rewards, GAMMA, error=0.01, deterministic=True)
   # plots
+  plt.figure(figsize=(20,4))
   plt.subplot(1, 4, 1)
   img_utils.heatmap2d(rmap_gt, 'Rewards Map - Ground Truth', block=False)
   plt.subplot(1, 4, 2)
@@ -141,8 +143,8 @@ def main():
   plt.subplot(1, 4, 4)
   img_utils.heatmap2d(np.reshape(values, (H,W), order='F'), 'Value Map - Recovered', block=False)
   plt.show()
-  # plt.subplot(2, 2, 4)
-  # img_utils.heatmap3d(np.reshape(rewards, (H,W), order='F'), 'Reward Map - Recovered', block=False)
+
+
 
 
 if __name__ == "__main__":

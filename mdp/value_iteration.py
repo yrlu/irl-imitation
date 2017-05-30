@@ -18,8 +18,7 @@ class ValueIterationAgent(object):
     The constructor builds a value model from mdp using dynamic programming
     
     inputs:
-      mdp       markov decision process that is required by value iteration agent
-                definitation: 
+      mdp       markov decision process that is required by value iteration agent definition: 
                 https://github.com/stormmax/reinforcement_learning/blob/master/envs/mdp.py
       gamma     discount factor
     """
@@ -187,14 +186,12 @@ def value_iteration(P_a, rewards, gamma, error=0.01, deterministic=True):
     policy    Nx1 (NxN_ACTIONS if non-det) matrix - policy
   """
   N_STATES, _, N_ACTIONS = np.shape(P_a)
-  # print np.reshape(P_a[24,:,0], (5,5))
 
   values = np.zeros([N_STATES])
 
   # estimate values
   while True:
     values_tmp = values.copy()
-    # print values
 
     for s in range(N_STATES):
       v_s = []
@@ -203,8 +200,9 @@ def value_iteration(P_a, rewards, gamma, error=0.01, deterministic=True):
     if max([abs(values[s] - values_tmp[s]) for s in range(N_STATES)]) < error:
       break
 
-  # generate deterministic policy
+  
   if deterministic:
+    # generate deterministic policy
     policy = np.zeros([N_STATES])
     for s in range(N_STATES):
       policy[s] = np.argmax([sum([P_a[s, s1, a]*(rewards[s]+gamma*values[s1]) 
@@ -213,6 +211,7 @@ def value_iteration(P_a, rewards, gamma, error=0.01, deterministic=True):
 
     return values, policy
   else:
+    # generate stochastic policy
     policy = np.zeros([N_STATES, N_ACTIONS])
     for s in range(N_STATES):
       v_s = [sum([P_a[s, s1, a]*(rewards[s]+gamma*values[s1]) 
