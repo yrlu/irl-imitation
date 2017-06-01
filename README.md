@@ -3,9 +3,9 @@
 
 ##### Algorithms implemented 
 
-- linear inverse reinforcement learning (Ng & Russell 2000)
-- maximum entropy inverse reinforcement learning (Ziebart et al. 2008)
-- maximum entropy deep inverse reinforcement learning (Wulfmeier et al. 2016)
+- Linear inverse reinforcement learning (Ng & Russell 2000)
+- Maximum entropy inverse reinforcement learning (Ziebart et al. 2008)
+- Maximum entropy deep inverse reinforcement learning (Wulfmeier et al. 2016)
 
 ##### MDP & solver implemented
 
@@ -32,7 +32,7 @@ $ python linear_irl_gridworld.py --act_random=0.3 --gamma=0.5 --l1=10 --r_max=10
 
 #### Maximum Entropy Inverse Reinforcement Learning
 
-(disclaimer: this implementation is largely influenced by [Matthew Alger's maxent implementation](https://github.com/MatthewJA/Inverse-Reinforcement-Learning/blob/master/irl/maxent.py))
+(This implementation is largely influenced by [Matthew Alger's maxent implementation](https://github.com/MatthewJA/Inverse-Reinforcement-Learning/blob/master/irl/maxent.py))
 
 - Following Ziebart et al. 2008 paper: [Maximum Entropy Inverse Reinforcement Learning](https://www.aaai.org/Papers/AAAI/2008/AAAI08-227.pdf)
 - `$ python maxent_irl_gridworld.py --help` for options descriptions
@@ -58,14 +58,14 @@ $ python maxent_irl_gridworld.py --gamma=0.8 --n_trajs=400 --l_traj=50 --rand_st
 
 #### Maximum Entropy Deep Inverse Reinforcement Learning
 
-- Following Wulfmeier et al. 2016 paper: [Maximum Entropy Deep Inverse Reinforcement Learning](https://arxiv.org/pdf/1507.04888.pdf)
+- Following Wulfmeier et al. 2015 paper: [Maximum Entropy Deep Inverse Reinforcement Learning](https://arxiv.org/pdf/1507.04888.pdf)
 - `$ python deep_maxent_irl_gridworld.py --help` for options descriptions
 
 ```
-$ python deep_maxent_irl_gridworld.py --learning_rate=0.02 --n_iter=20 --rand_start
+$ python deep_maxent_irl_gridworld.py --learning_rate=0.02 --n_trajs=200 --n_iters=20
 ```
 
-<img src="imgs/deep_maxent_5.jpg" width="830">
+<img src="imgs/deep_maxent_5s.jpg" width="830">
 
 #### MIT License
 
