@@ -1,5 +1,5 @@
 # irl-imitation
-Implementations of some model-based Inverse Reinforcement Learning (IRL) algorithms in python/Tensorflow. Mainly for educational purpose. 
+Implementations of some model-based Inverse Reinforcement Learning (IRL) algorithms in python/Tensorflow. Mainly for educational purpose. (WIP)
 
 ```
 python demo.py
@@ -65,7 +65,7 @@ $ python maxent_irl_gridworld.py --gamma=0.8 --n_trajs=400 --l_traj=50 --rand_st
 
 #### Maximum Entropy Deep Inverse Reinforcement Learning
 
-- Following Wulfmeier et al. 2015 paper: [Maximum Entropy Deep Inverse Reinforcement Learning](https://arxiv.org/pdf/1507.04888.pdf)
+- Following Wulfmeier et al. 2015 paper: [Maximum Entropy Deep Inverse Reinforcement Learning](https://arxiv.org/pdf/1507.04888.pdf). FC version implemented. The implementation does not follow exactly the model proposed in the papers. Some tweaks applied including elu activations, clipping gradients, l2 regularization etc.
 - `$ python deep_maxent_irl_gridworld.py --help` for options descriptions
 
 ```
