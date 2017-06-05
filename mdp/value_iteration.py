@@ -11,6 +11,60 @@ import math
 import numpy as np
 
 
+def value_iteration(P_a, rewards, gamma, error=0.01, deterministic=True):
+  """
+  static value iteration function. Perhaps the most useful function in this repo
+  
+  inputs:
+    P_a         NxNxN_ACTIONS transition probabilities matrix - 
+                              P_a[s0, s1, a] is the transition prob of 
+                              landing at state s1 when taking action 
+                              a at state s0
+    rewards     Nx1 matrix - rewards for all the states
+    gamma       float - RL discount
+    error       float - threshold for a stop
+    deterministic   bool - to return deterministic policy or stochastic policy
+  
+  returns:
+    values    Nx1 matrix - estimated values
+    policy    Nx1 (NxN_ACTIONS if non-det) matrix - policy
+  """
+  N_STATES, _, N_ACTIONS = np.shape(P_a)
+
+  values = np.zeros([N_STATES])
+
+  # estimate values
+  while True:
+    values_tmp = values.copy()
+
+    for s in range(N_STATES):
+      v_s = []
+      values[s] = max([sum([P_a[s, s1, a]*(rewards[s] + gamma*values_tmp[s1]) for s1 in range(N_STATES)]) for a in range(N_ACTIONS)])
+
+    if max([abs(values[s] - values_tmp[s]) for s in range(N_STATES)]) < error:
+      break
+
+
+  if deterministic:
+    # generate deterministic policy
+    policy = np.zeros([N_STATES])
+    for s in range(N_STATES):
+      policy[s] = np.argmax([sum([P_a[s, s1, a]*(rewards[s]+gamma*values[s1]) 
+                                  for s1 in range(N_STATES)]) 
+                                  for a in range(N_ACTIONS)])
+
+    return values, policy
+  else:
+    # generate stochastic policy
+    policy = np.zeros([N_STATES, N_ACTIONS])
+    for s in range(N_STATES):
+      v_s = np.array([sum([P_a[s, s1, a]*(rewards[s] + gamma*values[s1]) for s1 in range(N_STATES)]) for a in range(N_ACTIONS)])
+      policy[s,:] = np.transpose(v_s/np.sum(v_s))
+    return values, policy
+
+
+
+
 class ValueIterationAgent(object):
 
   def __init__(self, mdp, gamma, iterations=100):
@@ -95,19 +149,6 @@ class ValueIterationAgent(object):
     return values
 
 
-  # def get_optimal_policy(self):
-  #   """
-  #   returns
-  #     a dictionary {<state, action>}
-  #   """
-  #   states = self.mdp.get_states()
-  #   policy = {}
-  #   for s in states:
-  #     policy[tuple(s)] = self.get_action(s)
-  #   return policy
-
-
-
   def get_optimal_policy(self):
     """
     returns
@@ -119,16 +160,6 @@ class ValueIterationAgent(object):
       policy[s] = [(self.get_action(s), 1)]
     return policy
 
-  # def get_policy_dist(self):
-  #   """
-  #   returns
-  #     a dictionary {<state, action_dist>}
-  #   """
-  #   states = self.mdp.get_states()
-  #   policy = {}
-  #   for s in states:
-  #     policy[s] = self.get_action_dist(s)
-  #   return policy
 
   def get_action_dist(self, state):
     """
@@ -167,56 +198,6 @@ class ValueIterationAgent(object):
     return actions[a_id]
 
 
-def value_iteration(P_a, rewards, gamma, error=0.01, deterministic=True):
-  """
-  static value iteration function. Most useful function in this repo
-  
-  inputs:
-    P_a         NxNxN_ACTIONS transition probabilities matrix - 
-                              P_a[s0, s1, a] is the transition prob of 
-                              landing at state s1 when taking action 
-                              a at state s0
-    rewards     Nx1 matrix - rewards for all the states
-    gamma       float - RL discount
-    error       float - threshold for a stop
-    deterministic   bool - to return deterministic policy or stochastic policy
-  
-  returns:
-    values    Nx1 matrix - estimated values
-    policy    Nx1 (NxN_ACTIONS if non-det) matrix - policy
-  """
-  N_STATES, _, N_ACTIONS = np.shape(P_a)
-
-  values = np.zeros([N_STATES])
-
-  # estimate values
-  while True:
-    values_tmp = values.copy()
-
-    for s in range(N_STATES):
-      v_s = []
-      values[s] = max([sum([P_a[s, s1, a]*(rewards[s] + gamma*values_tmp[s1]) for s1 in range(N_STATES)]) for a in range(N_ACTIONS)])
-
-    if max([abs(values[s] - values_tmp[s]) for s in range(N_STATES)]) < error:
-      break
-
-  
-  if deterministic:
-    # generate deterministic policy
-    policy = np.zeros([N_STATES])
-    for s in range(N_STATES):
-      policy[s] = np.argmax([sum([P_a[s, s1, a]*(rewards[s]+gamma*values[s1]) 
-                                  for s1 in range(N_STATES)]) 
-                                  for a in range(N_ACTIONS)])
-
-    return values, policy
-  else:
-    # generate stochastic policy
-    policy = np.zeros([N_STATES, N_ACTIONS])
-    for s in range(N_STATES):
-      v_s = np.array([sum([P_a[s, s1, a]*(rewards[s] + gamma*values[s1]) for s1 in range(N_STATES)]) for a in range(N_ACTIONS)])
-      policy[s,:] = np.transpose(v_s/np.sum(v_s))
-    return values, policy
 
 
 
