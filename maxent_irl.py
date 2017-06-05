@@ -3,7 +3,7 @@ Implementation of maximum entropy inverse reinforcement learning in
   Ziebart et al. 2008 paper: Maximum Entropy Inverse Reinforcement Learning
   https://www.aaai.org/Papers/AAAI/2008/AAAI08-227.pdf
 
-Credits:
+Acknowledgement:
   This implementation is largely influenced by Matthew Alger's maxent implementation here:
   https://github.com/MatthewJA/Inverse-Reinforcement-Learning/blob/master/irl/maxent.py
 
@@ -82,6 +82,7 @@ def maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters):
 
   # training
   for iteration in range(n_iters):
+  
     if iteration % (n_iters/20) == 0:
       print 'iteration: {}/{}'.format(iteration, n_iters)
     
@@ -101,6 +102,7 @@ def maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters):
     theta += lr * grad
 
   rewards = np.dot(feat_map, theta)
+  # return sigmoid(normalize(rewards))
   return normalize(rewards)
 
 

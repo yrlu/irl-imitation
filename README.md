@@ -1,15 +1,22 @@
 # irl-imitation
-(WIP) Inverse reinforcement learning / imitation learning algorithms in python/Tensorflow. Mainly for educational purpose.
+Implementations of some model-based Inverse Reinforcement Learning (IRL) algorithms in python/Tensorflow. Mainly for educational purpose. 
+
+```
+python demo.py
+```
+
+<img src="imgs/cmp.jpg" width="830">
 
 ##### Algorithms implemented 
 
 - Linear inverse reinforcement learning (Ng & Russell 2000)
 - Maximum entropy inverse reinforcement learning (Ziebart et al. 2008)
-- Maximum entropy deep inverse reinforcement learning (Wulfmeier et al. 2016)
+- Maximum entropy deep inverse reinforcement learning (Wulfmeier et al. 2015)
 
 ##### MDP & solver implemented
 
-- gridworld environment
+- gridworld 2D
+- gridworld 1D
 - value iteration
 
 #### Dependencies
@@ -22,7 +29,7 @@
 
 #### Linear Inverse Reinforcement Learning
 
-- Following Ng & Russell 2000 paper: [Algorithms for Inverse Reinforcement Learning](http://ai.stanford.edu/~ang/papers/icml00-irl.pdf)
+- Following Ng & Russell 2000 paper: [Algorithms for Inverse Reinforcement Learning](http://ai.stanford.edu/~ang/papers/icml00-irl.pdf), algorithm 1
 
 ```
 $ python linear_irl_gridworld.py --act_random=0.3 --gamma=0.5 --l1=10 --r_max=10

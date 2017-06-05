@@ -82,9 +82,10 @@ def main():
   N_ACTIONS = 5
 
   rmap_gt = np.zeros([H, W])
-  rmap_gt[H-1, W-1] = R_MAX
-  rmap_gt[0, W-1] = R_MAX
-  rmap_gt[H-1, 0] = R_MAX
+  rmap_gt[H-2, W-2] = R_MAX
+  rmap_gt[1, 1] = R_MAX
+  # rmap_gt[H/2, W/2] = R_MAX
+
 
   gw = gridworld.GridWorld(rmap_gt, {}, 1 - ACT_RAND)
 
@@ -93,25 +94,33 @@ def main():
 
   values_gt, policy_gt = value_iteration.value_iteration(P_a, rewards_gt, GAMMA, error=0.01, deterministic=True)
   
+  rewards_gt = normalize(values_gt)
+  gw = gridworld.GridWorld(np.reshape(rewards_gt, (H,W), order='F'), {}, 1 - ACT_RAND)
+  P_a = gw.get_transition_mat()
+  values_gt, policy_gt = value_iteration.value_iteration(P_a, rewards_gt, GAMMA, error=0.01, deterministic=True)
+
+
   # use identity matrix as feature
   feat_map = np.eye(N_STATES)
 
   trajs = generate_demonstrations(gw, policy_gt, n_trajs=N_TRAJS, len_traj=L_TRAJ, rand_start=RAND_START)
-  
+  print 'LP IRL training ..'
+  rewards_lpirl = lp_irl(P_a, policy_gt, gamma=0.3, l1=10, R_max=R_MAX)
+  print 'Max Ent IRL training ..'
+  rewards_maxent = maxent_irl(feat_map, P_a, GAMMA, trajs, LEARNING_RATE*2, N_ITERS*2)
   print 'Deep Max Ent IRL training ..'
   rewards = deep_maxent_irl(feat_map, P_a, GAMMA, trajs, LEARNING_RATE, N_ITERS)
 
-  values, _ = value_iteration.value_iteration(P_a, rewards, GAMMA, error=0.01, deterministic=True)
   # plots
   plt.figure(figsize=(20,4))
   plt.subplot(1, 4, 1)
   img_utils.heatmap2d(np.reshape(rewards_gt, (H,W), order='F'), 'Rewards Map - Ground Truth', block=False)
   plt.subplot(1, 4, 2)
-  img_utils.heatmap2d(np.reshape(values_gt, (H,W), order='F'), 'Value Map - Ground Truth', block=False)
+  img_utils.heatmap2d(np.reshape(rewards_lpirl, (H,W), order='F'), 'Reward Map - LP', block=False)
   plt.subplot(1, 4, 3)
-  img_utils.heatmap2d(np.reshape(rewards, (H,W), order='F'), 'Reward Map - Recovered', block=False)
+  img_utils.heatmap2d(np.reshape(rewards_maxent, (H,W), order='F'), 'Reward Map - Maxent', block=False)
   plt.subplot(1, 4, 4)
-  img_utils.heatmap2d(np.reshape(values, (H,W), order='F'), 'Value Map - Recovered', block=False)
+  img_utils.heatmap2d(np.reshape(rewards, (H,W), order='F'), 'Reward Map - Deep Maxent', block=False)
   plt.show()
 
 

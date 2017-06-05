@@ -5,14 +5,13 @@ import matplotlib.pyplot as plt
 
 def show_img(img):
   print img.shape, img.dtype
-  
   plt.imshow(img[:,:,0])
   plt.ion()
   plt.show()
   raw_input()
 
 
-def heatmap2d(hm_mat, title='', block=True, fig_num=1):
+def heatmap2d(hm_mat, title='', block=True, fig_num=1, text=True):
   """
   Display heatmap
   input:
@@ -24,33 +23,30 @@ def heatmap2d(hm_mat, title='', block=True, fig_num=1):
     plt.figure(fig_num)
     plt.clf()
   
-  plt.imshow(hm_mat, cmap='hot', interpolation='nearest')
+  # plt.imshow(hm_mat, cmap='hot', interpolation='nearest')
+  plt.imshow(hm_mat, interpolation='nearest')
   plt.title(title)
   plt.colorbar()
-  for y in range(hm_mat.shape[0]):
-    for x in range(hm_mat.shape[1]):
-      plt.text(x, y, '%.1f' % hm_mat[y, x],
-               horizontalalignment='center',
-               verticalalignment='center',
-               )
+  
+  if text:
+    for y in range(hm_mat.shape[0]):
+      for x in range(hm_mat.shape[1]):
+        plt.text(x, y, '%.1f' % hm_mat[y, x],
+                 horizontalalignment='center',
+                 verticalalignment='center',
+                 )
+
   if block:
     plt.ion()
-    print 'press any key to continue'
+    print 'press enter to continue'
     plt.show()
     raw_input()
 
 
 def heatmap3d(hm_mat, title=''):
-  """
-  Credit:
-    https://stackoverflow.com/questions/14061061/how-can-i-render-3d-histograms-in-python
-  """
-
   from mpl_toolkits.mplot3d import Axes3D
   import matplotlib.pyplot as plt
   import numpy as np
-  print 'map shape: {}, data type: {}'.format(hm_mat.shape, hm_mat.dtype)
-
   #
   # Assuming you have "2D" dataset like the following that you need
   # to plot.
@@ -63,9 +59,10 @@ def heatmap3d(hm_mat, title=''):
   #
   # Create a figure for plotting the data as a 3D histogram.
   #
-  plt.title(title, fontsize=20)
-  # _, ax = plt.subplots()
-  ax = fig.add_subplot(111, )
+  fig = plt.figure()
+  ax = fig.add_subplot(111, projection='3d')
+  plt.title(title)
+  # _, ax = fig.add_subplot(111)
   #
   # Create an X-Y mesh of the same dimension as the 2D data. You can
   # think of this as the floor of the plot.
@@ -89,7 +86,5 @@ def heatmap3d(hm_mat, title=''):
   #
   # Finally, display the plot.
   #
-  plt.ion()
-  print 'press any key to continue'
   plt.show()
   raw_input()

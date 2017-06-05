@@ -1,4 +1,3 @@
-# Gridworld environment based on mdp.py
 # Gridworld provides a basic environment for RL agents to interact with
 #
 # ---
