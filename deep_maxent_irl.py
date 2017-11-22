@@ -16,7 +16,7 @@ from utils import *
 class DeepIRLFC:
 
 
-  def __init__(self, n_input, lr, n_h1=400, n_h2=300, l2=10, name='deep_irl_fc'):
+  def __init__(self, n_input, n_actions, lr, n_h1=400, n_h2=300, l2=10, name='deep_irl_fc'):
     self.n_input = n_input
     self.lr = lr
     self.n_h1 = n_h1
@@ -25,9 +25,16 @@ class DeepIRLFC:
 
     self.sess = tf.Session()
     self.input_s, self.reward, self.theta = self._build_network(self.name)
+
+    # value iteration
+    self.P_a = tf.placeholder(tf.float32, shape=(n_input, n_actions, n_input))
+    self.gamma = tf.placeholder(tf.float32)
+    self.epsilon = tf.placeholder(tf.float32)
+    self.values, self.policy = self._vi(self.reward)
+
     self.optimizer = tf.train.GradientDescentOptimizer(lr)
     
-    self.grad_r = tf.placeholder(tf.float32, [None, 1])
+    self.grad_r = tf.placeholder(tf.float32, [n_input, 1])
     self.l2_loss = tf.add_n([tf.nn.l2_loss(v) for v in self.theta])
     self.grad_l2 = tf.gradients(self.l2_loss, self.theta)
 
@@ -42,7 +49,7 @@ class DeepIRLFC:
 
 
   def _build_network(self, name):
-    input_s = tf.placeholder(tf.float32, [None, self.n_input])
+    input_s = tf.placeholder(tf.float32, [self.n_input, self.n_input])
     with tf.variable_scope(name):
       fc1 = tf_utils.fc(input_s, self.n_h1, scope="fc1", activation_fn=tf.nn.elu,
         initializer=tf.contrib.layers.variance_scaling_initializer(mode="FAN_IN"))
@@ -52,15 +59,41 @@ class DeepIRLFC:
     theta = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=name)
     return input_s, reward, theta
 
+  def _vi(self, rewards):
+
+      rewards = tf.squeeze(rewards)
+
+      def body(i, c, t):
+          old_values = t.read(i)
+          new_values = tf.reduce_max(tf.reduce_sum(self.P_a * (rewards + self.gamma * old_values), axis=2), axis=1)
+          c = tf.reduce_max(tf.abs(new_values - old_values)) > self.epsilon
+          c.set_shape(())
+          t = t.write(i + 1, new_values)
+          return i + 1, c, t
+
+      def condition(i, c, t):
+          return c
+
+      t = tf.TensorArray(dtype=tf.float32, size=350, clear_after_read=True)
+      t = t.write(0, tf.constant(0, dtype=tf.float32, shape=(self.n_input,)))
+
+      i, _, values = tf.while_loop(condition, body, [0, True, t], parallel_iterations=1, back_prop=False,
+                                   name='VI_loop')
+      values = values.read(i)
+      policy = tf.reduce_max(tf.reduce_sum(self.P_a * (rewards + self.gamma * values), axis=2), axis=1)
+
+      return values, policy
 
   def get_theta(self):
     return self.sess.run(self.theta)
-
 
   def get_rewards(self, states):
     rewards = self.sess.run(self.reward, feed_dict={self.input_s: states})
     return rewards
 
+  def get_policy(self, states, P_a, gamma, epsilon=0.01):
+    return self.sess.run([self.reward, self.values, self.policy],
+                         feed_dict={self.input_s: states, self.P_a: P_a, self.gamma: gamma, self.epsilon: epsilon})
 
   def apply_grads(self, feat_map, grad_r):
     grad_r = np.reshape(grad_r, [-1, 1])
@@ -161,7 +194,7 @@ def deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters):
   N_STATES, _, N_ACTIONS = np.shape(P_a)
 
   # init nn model
-  nn_r = DeepIRLFC(feat_map.shape[1], lr, 3, 3)
+  nn_r = DeepIRLFC(feat_map.shape[1], N_ACTIONS, lr, 3, 3)
 
   # find state visitation frequencies using demonstrations
   mu_D = demo_svf(trajs, N_STATES)
@@ -172,10 +205,13 @@ def deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters):
       print 'iteration: {}'.format(iteration)
     
     # compute the reward matrix
-    rewards = nn_r.get_rewards(feat_map)
+    # rewards = nn_r.get_rewards(feat_map)
     
     # compute policy 
-    _, policy = value_iteration.value_iteration(P_a, rewards, gamma, error=0.01, deterministic=True)
+    # _, policy = value_iteration.value_iteration(P_a, rewards, gamma, error=0.01, deterministic=True)
+
+    # compute rewards and policy at the same time
+    rewards, _, policy = nn_r.get_policy(feat_map, P_a.transpose(0, 2, 1), gamma, 0.01)
     
     # compute expected svf
     mu_exp = compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=True)
