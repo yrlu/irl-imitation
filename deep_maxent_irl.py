@@ -1,5 +1,10 @@
+import multiprocessing
+from concurrent.futures import ThreadPoolExecutor
+
 import numpy as np
 import tensorflow as tf
+import time
+
 import mdp.gridworld as gridworld
 import mdp.value_iteration as value_iteration
 import img_utils
@@ -80,6 +85,7 @@ def compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=True):
   returns:
     p       Nx1 vector - state visitation frequencies
   """
+  tt = time.time()
   N_STATES, _, N_ACTIONS = np.shape(P_a)
 
   T = len(trajs[0])
@@ -90,13 +96,28 @@ def compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=True):
     mu[traj[0].cur_state, 0] += 1
   mu[:,0] = mu[:,0]/len(trajs)
 
-  for s in range(N_STATES):
-    for t in range(T-1):
+  num_cpus = multiprocessing.cpu_count()
+  # chunk_size = N_STATES // num_cpus
+
+  def step(s):
+    for t in range(T - 1):
       if deterministic:
-        mu[s, t+1] = sum([mu[pre_s, t]*P_a[pre_s, s, int(policy[pre_s])] for pre_s in range(N_STATES)])
+        mu[s, t + 1] = np.sum(mu[:, t] * P_a[np.arange(0, N_STATES), s, policy])
       else:
-        mu[s, t+1] = sum([sum([mu[pre_s, t]*P_a[pre_s, s, a1]*policy[pre_s, a1] for a1 in range(N_ACTIONS)]) for pre_s in range(N_STATES)])
+        mu[s, t + 1] = sum(
+          [sum([mu[pre_s, t] * P_a[pre_s, s, a1] * policy[pre_s, a1] for a1 in range(N_ACTIONS)]) for pre_s in
+           range(N_STATES)])
+
+  with ThreadPoolExecutor(max_workers=num_cpus) as e:
+    for i in range(0, N_STATES):
+      e.submit(step, i)
+
+  # for t in range(T - 1):
+  #   mu[:, t+1] = (mu[:, t]*P_a[np.arange(0, N_STATES), :, policy]).sum(axis=1)
+
   p = np.sum(mu, 1)
+
+  print(time.time() - tt)
   return p
 
 
