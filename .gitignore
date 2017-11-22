@@ -5,3 +5,5 @@ tmp/*
 papers/*
 cartpole/cartpole-model/history.p
 cartpole/cartpole-model/memory.p
+
+.idea/

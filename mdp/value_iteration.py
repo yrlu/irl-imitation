@@ -8,7 +8,11 @@
 # MIT License
 
 import math
+from concurrent.futures import ThreadPoolExecutor
+
 import numpy as np
+import time
+import multiprocessing
 
 
 def value_iteration(P_a, rewards, gamma, error=0.01, deterministic=True):
@@ -33,33 +37,46 @@ def value_iteration(P_a, rewards, gamma, error=0.01, deterministic=True):
 
   values = np.zeros([N_STATES])
 
+  t = time.time()
+  rewards = rewards.squeeze()
+  P = P_a.transpose(0, 2, 1)
+
+  num_cpus = multiprocessing.cpu_count()
+  chunk_size = N_STATES // num_cpus
+
+  count = 0
   # estimate values
   while True:
+    count += 1
     values_tmp = values.copy()
 
-    for s in range(N_STATES):
-      v_s = []
-      values[s] = max([sum([P_a[s, s1, a]*(rewards[s] + gamma*values_tmp[s1]) for s1 in range(N_STATES)]) for a in range(N_ACTIONS)])
+    def step(start, end):
+      values[start:end] = (P[start:end, :, :] * (rewards + gamma * values_tmp)).sum(axis=2).max(axis=1)
+
+    with ThreadPoolExecutor(max_workers=num_cpus) as e:
+      for i in range(0, N_STATES, chunk_size):
+        e.submit(step, i, min(i + chunk_size, N_STATES))
+
+    # values = (P * (rewards + gamma * values_tmp)).sum(axis=2).max(axis=1)
+    # values = ne.evaluate('sum(P * (rewards + gamma * values_tmp), axis=2)').max(axis=1)
 
     if max([abs(values[s] - values_tmp[s]) for s in range(N_STATES)]) < error:
+      print('VI', count)
       break
-
 
   if deterministic:
     # generate deterministic policy
-    policy = np.zeros([N_STATES])
-    for s in range(N_STATES):
-      policy[s] = np.argmax([sum([P_a[s, s1, a]*(rewards[s]+gamma*values[s1]) 
-                                  for s1 in range(N_STATES)]) 
-                                  for a in range(N_ACTIONS)])
+    policy = np.argmax((P * (rewards + gamma * values_tmp)).sum(axis=2), axis=1)
+
+    print(time.time() - t)
 
     return values, policy
   else:
     # generate stochastic policy
-    policy = np.zeros([N_STATES, N_ACTIONS])
-    for s in range(N_STATES):
-      v_s = np.array([sum([P_a[s, s1, a]*(rewards[s] + gamma*values[s1]) for s1 in range(N_STATES)]) for a in range(N_ACTIONS)])
-      policy[s,:] = np.transpose(v_s/np.sum(v_s))
+    policy = (P * (rewards + gamma * values_tmp)).sum(axis=2)
+    policy = policy / np.sum(policy, axis=1)
+
+    print(time.time() - t)
     return values, policy
 
 
