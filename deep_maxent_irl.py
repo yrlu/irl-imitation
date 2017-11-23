@@ -23,7 +23,9 @@ class DeepIRLFC:
     self.n_h2 = n_h2
     self.name = name
 
-    self.sess = tf.Session()
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    self.sess = tf.Session(config=config)
     self.input_s, self.reward, self.theta = self._build_network(self.name)
 
     # value iteration
@@ -33,7 +35,7 @@ class DeepIRLFC:
     self.values, self.policy = self._vi(self.reward)
 
     self.optimizer = tf.train.GradientDescentOptimizer(lr)
-    
+
     self.grad_r = tf.placeholder(tf.float32, [n_input, 1])
     self.l2_loss = tf.add_n([tf.nn.l2_loss(v) for v in self.theta])
     self.grad_l2 = tf.gradients(self.l2_loss, self.theta)
@@ -98,14 +100,14 @@ class DeepIRLFC:
   def apply_grads(self, feat_map, grad_r):
     grad_r = np.reshape(grad_r, [-1, 1])
     feat_map = np.reshape(feat_map, [-1, self.n_input])
-    _, grad_theta, l2_loss, grad_norms = self.sess.run([self.optimize, self.grad_theta, self.l2_loss, self.grad_norms], 
+    _, grad_theta, l2_loss, grad_norms = self.sess.run([self.optimize, self.grad_theta, self.l2_loss, self.grad_norms],
       feed_dict={self.grad_r: grad_r, self.input_s: feat_map})
     return grad_theta, l2_loss, grad_norms
 
 
 
 def compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=True):
-  """compute the expected states visition frequency p(s| theta, T) 
+  """compute the expected states visition frequency p(s| theta, T)
   using dynamic programming
 
   inputs:
@@ -114,7 +116,7 @@ def compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=True):
     trajs   list of list of Steps - collected from expert
     policy  Nx1 vector (or NxN_ACTIONS if deterministic=False) - policy
 
-  
+
   returns:
     p       Nx1 vector - state visitation frequencies
   """
@@ -123,27 +125,27 @@ def compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=True):
 
   T = len(trajs[0])
   # mu[s, t] is the prob of visiting state s at time t
-  mu = np.zeros([N_STATES, T]) 
+  mu = np.zeros([N_STATES, T])
 
   for traj in trajs:
     mu[traj[0].cur_state, 0] += 1
   mu[:,0] = mu[:,0]/len(trajs)
 
   num_cpus = multiprocessing.cpu_count()
-  # chunk_size = N_STATES // num_cpus
+  chunk_size = N_STATES // num_cpus
 
-  def step(s):
-    for t in range(T - 1):
+  def step(t, start, end):
       if deterministic:
-        mu[s, t + 1] = np.sum(mu[:, t] * P_a[np.arange(0, N_STATES), s, policy])
+        mu[start:end, t + 1] = np.sum(mu[:, t] * P_a[np.arange(0, N_STATES), start:end, policy])
       else:
-        mu[s, t + 1] = sum(
-          [sum([mu[pre_s, t] * P_a[pre_s, s, a1] * policy[pre_s, a1] for a1 in range(N_ACTIONS)]) for pre_s in
+        mu[start:end, t + 1] = sum(
+          [sum([mu[pre_s, t] * P_a[pre_s, start:end, a1] * policy[pre_s, a1] for a1 in range(N_ACTIONS)]) for pre_s in
            range(N_STATES)])
 
   with ThreadPoolExecutor(max_workers=num_cpus) as e:
-    for i in range(0, N_STATES):
-      e.submit(step, i)
+    for t in range(T - 1):
+      for i in range(0, N_STATES, chunk_size):
+        e.submit(step, t, i, min(i + chunk_size, N_STATES))
 
   # for t in range(T - 1):
   #   mu[:, t+1] = (mu[:, t]*P_a[np.arange(0, N_STATES), :, policy]).sum(axis=1)
@@ -157,11 +159,11 @@ def compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=True):
 def demo_svf(trajs, n_states):
   """
   compute state visitation frequences from demonstrations
-  
+
   input:
     trajs   list of list of Steps - collected from expert
   returns:
-    p       Nx1 vector - state visitation frequences   
+    p       Nx1 vector - state visitation frequences
   """
 
   p = np.zeros(n_states)
@@ -177,8 +179,8 @@ def deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters):
 
   inputs:
     feat_map    NxD matrix - the features for each state
-    P_a         NxNxN_ACTIONS matrix - P_a[s0, s1, a] is the transition prob of 
-                                       landing at state s1 when taking action 
+    P_a         NxNxN_ACTIONS matrix - P_a[s0, s1, a] is the transition prob of
+                                       landing at state s1 when taking action
                                        a at state s0
     gamma       float - RL discount factor
     trajs       a list of demonstrations
@@ -190,7 +192,7 @@ def deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters):
   """
 
   # tf.set_random_seed(1)
-  
+
   N_STATES, _, N_ACTIONS = np.shape(P_a)
 
   # init nn model
@@ -199,19 +201,21 @@ def deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters):
   # find state visitation frequencies using demonstrations
   mu_D = demo_svf(trajs, N_STATES)
 
-  # training 
+  # training
   for iteration in range(n_iters):
     if iteration % (n_iters/10) == 0:
       print 'iteration: {}'.format(iteration)
-    
+
     # compute the reward matrix
     # rewards = nn_r.get_rewards(feat_map)
-    
-    # compute policy 
+
+    # compute policy
     # _, policy = value_iteration.value_iteration(P_a, rewards, gamma, error=0.01, deterministic=True)
 
     # compute rewards and policy at the same time
+    t = time.time()
     rewards, _, policy = nn_r.get_policy(feat_map, P_a.transpose(0, 2, 1), gamma, 0.01)
+    print('tensorflow VI', time.time() - t)
     
     # compute expected svf
     mu_exp = compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=True)
