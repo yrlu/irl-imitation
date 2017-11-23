@@ -186,7 +186,7 @@ def demo_svf(trajs, n_states):
   p = p/len(trajs)
   return p
 
-def deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters):
+def deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters, sparse):
   """
   Maximum Entropy Inverse Reinforcement Learning (Maxent IRL)
 
@@ -209,7 +209,7 @@ def deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters):
   N_STATES, _, N_ACTIONS = np.shape(P_a)
 
   # init nn model
-  nn_r = DeepIRLFC(feat_map.shape[1], N_ACTIONS, lr, 3, 3)
+  nn_r = DeepIRLFC(feat_map.shape[1], N_ACTIONS, lr, 3, 3, sparse)
 
   # find state visitation frequencies using demonstrations
   mu_D = demo_svf(trajs, N_STATES)
