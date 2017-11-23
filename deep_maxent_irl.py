@@ -134,9 +134,11 @@ def compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=True):
   num_cpus = multiprocessing.cpu_count()
   chunk_size = N_STATES // num_cpus
 
+  P_az = P_a[np.arange(0, N_STATES), :, policy]
+
   def step(t, start, end):
       if deterministic:
-        mu[start:end, t + 1] = np.sum(mu[:, t] * P_a[np.arange(0, N_STATES), start:end, policy])
+        mu[start:end, t + 1] = np.sum(mu[:, t] * P_az[:, start:end])
       else:
         mu[start:end, t + 1] = sum(
           [sum([mu[pre_s, t] * P_a[pre_s, start:end, a1] * policy[pre_s, a1] for a1 in range(N_ACTIONS)]) for pre_s in
