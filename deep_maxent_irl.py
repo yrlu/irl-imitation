@@ -80,7 +80,7 @@ class DeepIRLFC:
       i, _, values = tf.while_loop(condition, body, [0, True, t], parallel_iterations=1, back_prop=False,
                                    name='VI_loop')
       values = values.read(i)
-      policy = tf.reduce_max(tf.reduce_sum(self.P_a * (rewards + self.gamma * values), axis=2), axis=1)
+      policy = tf.argmax(tf.reduce_sum(self.P_a * (rewards + self.gamma * values), axis=2), axis=1)
 
       return values, policy
 
