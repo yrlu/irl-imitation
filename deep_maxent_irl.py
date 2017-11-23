@@ -23,11 +23,14 @@ class DeepIRLFC:
     self.n_h2 = n_h2
     self.name = name
 
-    self.sess = tf.Session()
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    self.sess = tf.Session(config=config)
     self.input_s, self.reward, self.theta = self._build_network(self.name)
 
     # value iteration
-    self.P_a = tf.placeholder(tf.float32, shape=(n_input, n_actions, n_input))
+    self.P_a = tf.sparse_placeholder(tf.float32, shape=(n_input, n_actions, n_input))
+
     self.gamma = tf.placeholder(tf.float32)
     self.epsilon = tf.placeholder(tf.float32)
     self.values, self.policy = self._vi(self.reward)
@@ -65,7 +68,7 @@ class DeepIRLFC:
 
       def body(i, c, t):
           old_values = t.read(i)
-          new_values = tf.reduce_max(tf.reduce_sum(self.P_a * (rewards + self.gamma * old_values), axis=2), axis=1)
+          new_values = tf.sparse_reduce_max(tf.sparse_reduce_sum_sparse(self.P_a * (rewards + self.gamma * old_values), axis=2), axis=1)
           c = tf.reduce_max(tf.abs(new_values - old_values)) > self.epsilon
           c.set_shape(())
           t = t.write(i + 1, new_values)
@@ -80,7 +83,7 @@ class DeepIRLFC:
       i, _, values = tf.while_loop(condition, body, [0, True, t], parallel_iterations=1, back_prop=False,
                                    name='VI_loop')
       values = values.read(i)
-      policy = tf.reduce_max(tf.reduce_sum(self.P_a * (rewards + self.gamma * values), axis=2), axis=1)
+      policy = tf.argmax(tf.sparse_tensor_to_dense(tf.sparse_reduce_sum_sparse(self.P_a * (rewards + self.gamma * values), axis=2)), axis=1)
 
       return values, policy
 
@@ -199,19 +202,27 @@ def deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters):
   # find state visitation frequencies using demonstrations
   mu_D = demo_svf(trajs, N_STATES)
 
+  P_a_t = P_a.transpose(0, 2, 1)
+  mask = P_a_t > 0
+  indices = np.argwhere(mask)
+  P_a_sparse = tf.SparseTensorValue(indices, P_a_t[mask], P_a_t.shape)
+  del P_a_t
+
   # training 
   for iteration in range(n_iters):
     if iteration % (n_iters/10) == 0:
       print 'iteration: {}'.format(iteration)
     
     # compute the reward matrix
-    # rewards = nn_r.get_rewards(feat_map)
+    #rewards = nn_r.get_rewards(feat_map)
     
     # compute policy 
-    # _, policy = value_iteration.value_iteration(P_a, rewards, gamma, error=0.01, deterministic=True)
+    #_, policy = value_iteration.value_iteration(P_a, rewards, gamma, error=0.01, deterministic=True)
 
     # compute rewards and policy at the same time
-    rewards, _, policy = nn_r.get_policy(feat_map, P_a.transpose(0, 2, 1), gamma, 0.01)
+    t = time.time()
+    rewards, _, policy = nn_r.get_policy(feat_map, P_a_sparse, gamma, 0.01)
+    print('tensorflow vi', time.time() - t)
     
     # compute expected svf
     mu_exp = compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=True)
