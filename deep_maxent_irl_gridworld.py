@@ -99,7 +99,9 @@ def main():
   trajs = generate_demonstrations(gw, policy_gt, n_trajs=N_TRAJS, len_traj=L_TRAJ, rand_start=RAND_START)
   
   print 'Deep Max Ent IRL training ..'
+  t = time.time()
   rewards = deep_maxent_irl(feat_map, P_a, GAMMA, trajs, LEARNING_RATE, N_ITERS)
+  print('time for dirl', time.time() - t)
 
   values, _ = value_iteration.value_iteration(P_a, rewards, GAMMA, error=0.01, deterministic=True)
   # plots
