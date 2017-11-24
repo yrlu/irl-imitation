@@ -214,6 +214,12 @@ def deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters, sparse):
   # find state visitation frequencies using demonstrations
   mu_D = demo_svf(trajs, N_STATES)
 
+  P_a_t = P_a.transpose(0, 2, 1)
+  if sparse:
+    mask = P_a_t > 0
+    indices = np.argwhere(mask)
+    P_a_t = tf.SparseTensorValue(indices, P_a_t[mask], P_a_t.shape)
+
   # training 
   for iteration in range(n_iters):
     if iteration % (n_iters/10) == 0:
@@ -227,7 +233,7 @@ def deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters, sparse):
 
     # compute rewards and policy at the same time
     t = time.time()
-    rewards, _, policy = nn_r.get_policy(feat_map, P_a.transpose(0, 2, 1), gamma, 0.01)
+    rewards, _, policy = nn_r.get_policy(feat_map, P_a_t, gamma, 0.01)
     print('tensorflow VI', time.time() - t)
     
     # compute expected svf
