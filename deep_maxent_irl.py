@@ -209,7 +209,7 @@ def deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters, sparse):
   N_STATES, _, N_ACTIONS = np.shape(P_a)
 
   # init nn model
-  nn_r = DeepIRLFC(feat_map.shape[1], N_ACTIONS, lr, 3, 3, sparse)
+  nn_r = DeepIRLFC(feat_map.shape[1], N_ACTIONS, lr, 3, 3, sparse=sparse)
 
   # find state visitation frequencies using demonstrations
   mu_D = demo_svf(trajs, N_STATES)
