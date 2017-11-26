@@ -98,11 +98,19 @@ def main():
   feat_map = np.eye(N_STATES)
 
   trajs = generate_demonstrations(gw, policy_gt, n_trajs=N_TRAJS, len_traj=L_TRAJ, rand_start=RAND_START)
+
+  mu = np.zeros([N_STATES])
+
+  for traj in trajs:
+    mu[traj[0].cur_state] += 1
+  mu = mu / len(trajs)
   
   print 'Deep Max Ent IRL training ..'
   t = time.time()
   rewards = deep_maxent_irl(feat_map, P_a, GAMMA, trajs, LEARNING_RATE, N_ITERS, ARGS.sparse)
   print('time for dirl', time.time() - t)
+
+  print('evd', expected_value_diff(P_a, rewards, rewards_gt, GAMMA, mu, values_gt))
 
   values, _ = value_iteration.value_iteration(P_a, rewards, GAMMA, error=0.01, deterministic=True)
   # plots
