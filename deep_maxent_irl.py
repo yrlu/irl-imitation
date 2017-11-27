@@ -155,8 +155,8 @@ def compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=True):
           [sum([mu[pre_s, t] * P_a[pre_s, start:end, a1] * policy[pre_s, a1] for a1 in range(N_ACTIONS)]) for pre_s in
            range(N_STATES)])
 
-  with ThreadPoolExecutor(max_workers=num_cpus) as e:
-    for t in range(T - 1):
+  for t in range(T - 1):
+    with ThreadPoolExecutor(max_workers=num_cpus) as e:
       for i in range(0, N_STATES, chunk_size):
         e.submit(step, t, i, min(i + chunk_size, N_STATES))
 
