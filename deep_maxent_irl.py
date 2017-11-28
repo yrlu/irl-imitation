@@ -33,6 +33,10 @@ class DeepIRLFC:
     else:
         self.P_a = tf.placeholder(tf.float32, shape=(n_input, n_actions, n_input))
 
+    # state visitation frequency
+    self.T = 0
+    self.mu = 0
+
     self.gamma = tf.placeholder(tf.float32)
     self.epsilon = tf.placeholder(tf.float32)
     self.values, self.policy = self._vi(self.reward)
@@ -97,6 +101,14 @@ class DeepIRLFC:
 
       return values, policy
 
+  def _svf(self, policy):
+      # TODO this only works for a deterministic policy atm
+      P_a_cur_policy = tf.gather(self.P_a, policy)
+      with tf.variable_scope('svf'):
+          for t in range(self.T - 1):
+              mu_t_plus1 = self.mu[t] * P_a_cur_policy
+
+
   def get_theta(self):
     return self.sess.run(self.theta)
 
@@ -149,16 +161,21 @@ def compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=True):
 
   def step(t, start, end):
       if deterministic:
-        mu[start:end, t + 1] = np.sum(mu[:, t] * P_az[:, start:end])
+        mu[start:end, t + 1] = np.sum(mu[:, t, np.newaxis] * P_az[:, start:end], axis=0)
       else:
         mu[start:end, t + 1] = sum(
           [sum([mu[pre_s, t] * P_a[pre_s, start:end, a1] * policy[pre_s, a1] for a1 in range(N_ACTIONS)]) for pre_s in
            range(N_STATES)])
 
-  for t in range(T - 1):
-    with ThreadPoolExecutor(max_workers=num_cpus) as e:
-      for i in range(0, N_STATES, chunk_size):
-        e.submit(step, t, i, min(i + chunk_size, N_STATES))
+  with ThreadPoolExecutor(max_workers=num_cpus) as e:
+    for t in range(T - 1):
+      futures = list()
+      for i in range(N_STATES):
+          futures.append(e.submit(step, t, i, min(N_STATES, i + chunk_size)))
+
+      for f in futures:
+          # Force throwing an exception if thrown by step()
+          f.result()
 
   # for t in range(T - 1):
   #   mu[:, t+1] = (mu[:, t]*P_a[np.arange(0, N_STATES), :, policy]).sum(axis=1)

@@ -54,8 +54,13 @@ def value_iteration(P_a, rewards, gamma, error=0.01, deterministic=True):
       values[start:end] = (P[start:end, :, :] * (rewards + gamma * values_tmp)).sum(axis=2).max(axis=1)
 
     with ThreadPoolExecutor(max_workers=num_cpus) as e:
+      futures = list()
       for i in range(0, N_STATES, chunk_size):
-        e.submit(step, i, min(i + chunk_size, N_STATES))
+        futures.append(e.submit(step, i, min(i + chunk_size, N_STATES)))
+
+      for f in futures:
+          # Force throwing an exception if thrown by step()
+          f.result()
 
     # values = (P * (rewards + gamma * values_tmp)).sum(axis=2).max(axis=1)
     # values = ne.evaluate('sum(P * (rewards + gamma * values_tmp), axis=2)').max(axis=1)
