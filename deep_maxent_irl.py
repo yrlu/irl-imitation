@@ -16,13 +16,14 @@ from utils import *
 class DeepIRLFC:
 
 
-  def __init__(self, n_input, n_actions, lr, n_h1=400, n_h2=300, l2=10, sparse=False, name='deep_irl_fc'):
+  def __init__(self, n_input, n_actions, lr, n_h1=400, n_h2=300, l2=10, deterministic=False, sparse=False, name='deep_irl_fc'):
     self.n_input = n_input
     self.lr = lr
     self.n_h1 = n_h1
     self.n_h2 = n_h2
     self.name = name
     self.sparse = sparse
+    self.deterministic = deterministic
 
     self.sess = tf.Session()
     self.input_s, self.reward, self.theta = self._build_network(self.name)
@@ -94,10 +95,20 @@ class DeepIRLFC:
       i, _, values = tf.while_loop(condition, body, [0, True, t], parallel_iterations=1, back_prop=False,
                                    name='VI_loop')
       values = values.read(i)
-      if self.sparse:
-          policy = tf.argmax(tf.sparse_tensor_to_dense(tf.sparse_reduce_sum_sparse(self.P_a * (rewards + self.gamma * values), axis=2)), axis=1)
+
+      if self.deterministic:
+          if self.sparse:
+              policy = tf.argmax(tf.sparse_tensor_to_dense(tf.sparse_reduce_sum_sparse(self.P_a * (rewards + self.gamma * values), axis=2)), axis=1)
+          else:
+              policy = tf.argmax(tf.reduce_sum(self.P_a * (rewards + self.gamma * values), axis=2), axis=1)
       else:
-          policy = tf.argmax(tf.reduce_sum(self.P_a * (rewards + self.gamma * values), axis=2), axis=1)
+          if self.sparse:
+              policy = tf.sparse_tensor_to_dense(
+                  tf.sparse_reduce_sum_sparse(self.P_a * (rewards + self.gamma * values), axis=2))
+          else:
+              policy = tf.reduce_sum(self.P_a * (rewards + self.gamma * values), axis=2)
+
+          policy = tf.nn.softmax(policy)
 
       return values, policy
 
@@ -157,15 +168,16 @@ def compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=True):
   num_cpus = multiprocessing.cpu_count()
   chunk_size = N_STATES // num_cpus
 
-  P_az = P_a[np.arange(0, N_STATES), :, policy]
+  if deterministic:
+    P_az = P_a[np.arange(0, N_STATES), :, policy]
+  else:
+    P_a = P_a.transpose(0, 2, 1)
 
   def step(t, start, end):
       if deterministic:
         mu[start:end, t + 1] = np.sum(mu[:, t, np.newaxis] * P_az[:, start:end], axis=0)
       else:
-        mu[start:end, t + 1] = sum(
-          [sum([mu[pre_s, t] * P_a[pre_s, start:end, a1] * policy[pre_s, a1] for a1 in range(N_ACTIONS)]) for pre_s in
-           range(N_STATES)])
+        mu[start:end, t + 1] = np.sum(np.sum(mu[:, t, np.newaxis, np.newaxis] * (P_a[:, :, start:end] * policy[:, :, np.newaxis]), axis=1), axis=0)
 
   with ThreadPoolExecutor(max_workers=num_cpus) as e:
     for t in range(T - 1):
@@ -226,7 +238,7 @@ def deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters, sparse):
   N_STATES, _, N_ACTIONS = np.shape(P_a)
 
   # init nn model
-  nn_r = DeepIRLFC(feat_map.shape[1], N_ACTIONS, lr, 3, 3, sparse=sparse)
+  nn_r = DeepIRLFC(feat_map.shape[1], N_ACTIONS, lr, 3, 3, deterministic=False, sparse=sparse)
 
   # find state visitation frequencies using demonstrations
   mu_D = demo_svf(trajs, N_STATES)
@@ -246,7 +258,7 @@ def deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters, sparse):
     # rewards = nn_r.get_rewards(feat_map)
 
     # compute policy
-    # _, policy = value_iteration.value_iteration(P_a, rewards, gamma, error=0.01, deterministic=True)
+    # _, policy = value_iteration.value_iteration(P_a, rewards, gamma, error=0.01, deterministic=False)
 
     # compute rewards and policy at the same time
     t = time.time()
@@ -254,7 +266,7 @@ def deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters, sparse):
     print('tensorflow VI', time.time() - t)
     
     # compute expected svf
-    mu_exp = compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=True)
+    mu_exp = compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=False)
     
     # compute gradients on rewards:
     grad_r = mu_D - mu_exp
