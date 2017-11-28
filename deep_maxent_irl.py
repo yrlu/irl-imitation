@@ -244,6 +244,40 @@ def demo_svf(trajs, n_states):
   p = p/len(trajs)
   return p
 
+
+def compute_state_visition_freq_old(P_a, gamma, trajs, policy, deterministic=True):
+    """compute the expected states visition frequency p(s| theta, T)
+    using dynamic programming
+    inputs:
+      P_a     NxNxN_ACTIONS matrix - transition dynamics
+      gamma   float - discount factor
+      trajs   list of list of Steps - collected from expert
+      policy  Nx1 vector (or NxN_ACTIONS if deterministic=False) - policy
+
+    returns:
+      p       Nx1 vector - state visitation frequencies
+    """
+    N_STATES, _, N_ACTIONS = np.shape(P_a)
+
+    T = len(trajs[0])
+    # mu[s, t] is the prob of visiting state s at time t
+    mu = np.zeros([N_STATES, T])
+
+    for traj in trajs:
+        mu[traj[0].cur_state, 0] += 1
+    mu[:, 0] = mu[:, 0] / len(trajs)
+    for t in range(T - 1):
+      for s in range(N_STATES):
+            if deterministic:
+                mu[s, t + 1] = sum([mu[pre_s, t] * P_a[pre_s, s, int(policy[pre_s])] for pre_s in range(N_STATES)])
+            else:
+                mu[s, t + 1] = sum(
+                    [sum([mu[pre_s, t] * P_a[pre_s, s, a1] * policy[pre_s, a1] for a1 in range(N_ACTIONS)]) for pre_s in
+                     range(N_STATES)])
+    p = np.sum(mu, 1)
+    return p
+
+
 def deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters, sparse):
   """
   Maximum Entropy Inverse Reinforcement Learning (Maxent IRL)
@@ -304,6 +338,7 @@ def deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters, sparse):
 
     print(mu_exp)
     print(compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=True))
+    print(compute_state_visition_freq_old(P_a, gamma, trajs, policy, deterministic=True))
 
     # apply gradients to the neural network
     grad_theta, l2_loss, grad_norm = nn_r.apply_grads(feat_map, grad_r)
