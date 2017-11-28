@@ -85,6 +85,67 @@ def value_iteration(P_a, rewards, gamma, error=0.01, deterministic=True):
     return values, policy
 
 
+def soft_value_iteration(P_a, rewards, gamma, error=0.01, deterministic=True):
+  """
+  soft value iteration function.
+  State log partition function calculation as Ziebart calls it in his thesis.
+
+  Ziebart's thesis algorithm 9.1 and "Activity forcasting" by Kitani et al.
+
+  inputs:
+  inputs:
+    P_a         NxNxN_ACTIONS transition probabilities matrix -
+                              P_a[s0, s1, a] is the transition prob of
+                              landing at state s1 when taking action
+                              a at state s0
+    rewards     Nx1 matrix - rewards for all the states
+    gamma       float - RL discount
+    error       float - threshold for a stop
+    deterministic   bool - to return deterministic policy or stochastic policy
+
+  returns:
+    values    Nx1 matrix - estimated values
+    policy    Nx1 (NxN_ACTIONS if non-det) matrix - policy
+  """
+  N_STATES, _, N_ACTIONS = np.shape(P_a)
+
+  values = np.zeros([N_STATES])
+
+  def softmax(x):
+    e_x = np.exp(x)
+    return np.log(e_x.sum())
+
+  # estimate values
+  while True:
+    values_tmp = values.copy()
+
+    for s in range(N_STATES):
+      v_s = []
+      q = [sum([P_a[s, s1, a]*(rewards[s] + gamma*values_tmp[s1]) for s1 in range(N_STATES)]) for a in range(N_ACTIONS)]
+      values[s] = softmax(q)
+
+    if max([abs(values[s] - values_tmp[s]) for s in range(N_STATES)]) < error:
+      break
+
+
+  if deterministic:
+    # generate deterministic policy
+    policy = np.zeros([N_STATES])
+    for s in range(N_STATES):
+      policy[s] = np.argmax([sum([P_a[s, s1, a]*(rewards[s]+gamma*values[s1])
+                                  for s1 in range(N_STATES)])
+                                  for a in range(N_ACTIONS)])
+
+    return values, policy
+  else:
+    # generate stochastic policy
+    policy = np.zeros([N_STATES, N_ACTIONS])
+    for s in range(N_STATES):
+      v_s = np.asarray([sum([P_a[s, s1, a]*(rewards[s] + gamma*values[s1]) for s1 in range(N_STATES)]) for a in range(N_ACTIONS)])
+      policy[s, :] = np.exp(v_s.squeeze() - values[s])
+    return values, policy
+
+
 
 
 class ValueIterationAgent(object):
