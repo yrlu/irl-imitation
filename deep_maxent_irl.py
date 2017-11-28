@@ -16,7 +16,7 @@ from utils import *
 class DeepIRLFC:
 
 
-  def __init__(self, n_input, n_actions, lr, n_h1=400, n_h2=300, l2=10, deterministic=False, sparse=False, name='deep_irl_fc'):
+  def __init__(self, n_input, n_actions, lr, T, n_h1=400, n_h2=300, l2=10, deterministic=False, sparse=False, name='deep_irl_fc'):
     self.n_input = n_input
     self.lr = lr
     self.n_h1 = n_h1
@@ -33,14 +33,15 @@ class DeepIRLFC:
         self.P_a = tf.sparse_placeholder(tf.float32, shape=(n_input, n_actions, n_input))
     else:
         self.P_a = tf.placeholder(tf.float32, shape=(n_input, n_actions, n_input))
-
-    # state visitation frequency
-    self.T = 0
-    self.mu = 0
-
     self.gamma = tf.placeholder(tf.float32)
     self.epsilon = tf.placeholder(tf.float32)
     self.values, self.policy = self._vi(self.reward)
+
+    # state visitation frequency
+    self.T = T
+    self.mu = tf.placeholder(tf.float32, n_input, name='mu_placerholder')
+
+    self.svf = self._svf(self.policy)
 
     self.optimizer = tf.train.GradientDescentOptimizer(lr)
     
@@ -113,11 +114,31 @@ class DeepIRLFC:
       return values, policy
 
   def _svf(self, policy):
-      # TODO this only works for a deterministic policy atm
-      P_a_cur_policy = tf.gather(self.P_a, policy)
+      if self.deterministic:
+        r = tf.range(self.n_input, dtype=tf.int64)
+        expanded = tf.expand_dims(r, 1)
+        tiled = tf.tile(expanded, [1, self.n_input])
+        indices = tf.stack([tiled] + tf.meshgrid(r, policy), axis=2)
+        P_a_cur_policy = tf.gather_nd(self.P_a, indices)
+
+      # if deterministic:
+      #   mu[start:end, t + 1] = np.sum(mu[:, t, np.newaxis] * P_az[:, start:end], axis=0)
+      # else:
+      #   mu[start:end, t + 1] = np.sum(np.sum(mu[:, t, np.newaxis, np.newaxis] * (P_a[:, :, start:end] * policy[:, :, np.newaxis]), axis=1), axis=0)
+
+      cur_mu = self.mu
+      mu = self.mu
       with tf.variable_scope('svf'):
-          for t in range(self.T - 1):
-              mu_t_plus1 = self.mu[t] * P_a_cur_policy
+          if self.deterministic:
+              for t in range(self.T - 1):
+                  cur_mu = tf.reduce_sum(cur_mu * P_a_cur_policy, axis=1)
+                  mu += cur_mu
+          else:
+              for t in range(self.T - 1):
+                  cur_mu = tf.reduce_sum(tf.reduce_sum(tf.tile(tf.expand_dims(cur_mu, 1), [1, tf.shape(policy)[1]]) * tf.transpose(self.P_a, (0, 2, 1)) * policy, axis=2), axis=1)
+                  mu += cur_mu
+
+      return mu
 
 
   def get_theta(self):
@@ -131,6 +152,10 @@ class DeepIRLFC:
     return self.sess.run([self.reward, self.values, self.policy],
                          feed_dict={self.input_s: states, self.P_a: P_a, self.gamma: gamma, self.epsilon: epsilon})
 
+  def get_policy_svf(self, states, P_a, gamma, p_start_state, epsilon=0.01):
+      return self.sess.run([self.reward, self.values, self.policy, self.svf],
+                           feed_dict={self.input_s: states, self.P_a: P_a, self.gamma: gamma, self.mu: p_start_state, self.epsilon: epsilon})
+
   def apply_grads(self, feat_map, grad_r):
     grad_r = np.reshape(grad_r, [-1, 1])
     feat_map = np.reshape(feat_map, [-1, self.n_input])
@@ -139,6 +164,14 @@ class DeepIRLFC:
     return grad_theta, l2_loss, grad_norms
 
 
+def start_state_probs(trajs, n_states):
+    p_start_state = np.zeros([n_states])
+
+    for traj in trajs:
+        p_start_state[traj[0].cur_state] += 1
+    p_start_state = p_start_state[:] / len(trajs)
+
+    return p_start_state
 
 def compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=True):
   """compute the expected states visition frequency p(s| theta, T) 
@@ -161,9 +194,7 @@ def compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=True):
   # mu[s, t] is the prob of visiting state s at time t
   mu = np.zeros([N_STATES, T])
 
-  for traj in trajs:
-    mu[traj[0].cur_state, 0] += 1
-  mu[:,0] = mu[:,0]/len(trajs)
+  mu[:, 0] = start_state_probs(trajs, N_STATES)
 
   num_cpus = multiprocessing.cpu_count()
   chunk_size = N_STATES // num_cpus
@@ -238,10 +269,11 @@ def deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters, sparse):
   N_STATES, _, N_ACTIONS = np.shape(P_a)
 
   # init nn model
-  nn_r = DeepIRLFC(feat_map.shape[1], N_ACTIONS, lr, 3, 3, deterministic=False, sparse=sparse)
+  nn_r = DeepIRLFC(feat_map.shape[1], N_ACTIONS, lr, len(trajs), 3, 3, deterministic=False, sparse=sparse)
 
   # find state visitation frequencies using demonstrations
   mu_D = demo_svf(trajs, N_STATES)
+  p_start_state = start_state_probs(trajs, N_STATES)
 
   P_a_t = P_a.transpose(0, 2, 1)
   if sparse:
@@ -262,12 +294,13 @@ def deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters, sparse):
 
     # compute rewards and policy at the same time
     t = time.time()
-    rewards, _, policy = nn_r.get_policy(feat_map, P_a_t, gamma, 0.01)
-    print('tensorflow VI', time.time() - t)
+    #rewards, _, policy = nn_r.get_policy(feat_map, P_a_t, gamma, 0.01)
+    #print('tensorflow VI', time.time() - t)
     
     # compute expected svf
-    mu_exp = compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=False)
-    
+    #mu_exp = compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=False)
+
+    rewards, _, policy, mu_exp = nn_r.get_policy_svf(feat_map, P_a_t, gamma, p_start_state, 0.01)
     # compute gradients on rewards:
     grad_r = mu_D - mu_exp
 

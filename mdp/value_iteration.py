@@ -43,6 +43,8 @@ def value_iteration(P_a, rewards, gamma, error=0.01, deterministic=True):
 
   num_cpus = multiprocessing.cpu_count()
   chunk_size = N_STATES // num_cpus
+  if chunk_size == 0:
+    chunk_size = N_STATES
 
   count = 0
   # estimate values
