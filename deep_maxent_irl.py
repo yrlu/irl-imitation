@@ -126,6 +126,7 @@ class DeepIRLFC:
         P_a = tf.Print(self.P_a , [(self.P_a )], 'self.P_a ', summarize=500)
         P_a_cur_policy = tf.gather_nd(tf.transpose(P_a, (0, 2, 1)), indices)
         P_a_cur_policy= tf.Print(P_a_cur_policy, [(P_a_cur_policy)], 'P_a_cur_policy', summarize=500)
+        P_a_cur_policy = tf.transpose(P_a_cur_policy, (1, 0))
       else:
         P_a_cur_policy = self.P_a * tf.tile(tf.expand_dims(policy, 2), [1, 1, self.n_input])
 
@@ -134,11 +135,11 @@ class DeepIRLFC:
       with tf.variable_scope('svf'):
           if self.deterministic:
               for t in range(self.T - 1):
-                  cur_mu = tf.reduce_sum(mu[t] * tf.transpose(P_a_cur_policy, (1, 0)), axis=1)
+                  cur_mu = tf.reduce_sum(mu[t] * P_a_cur_policy, axis=1)
                   mu.append(cur_mu)
           else:
               for t in range(self.T - 1):
-                  cur_mu = tf.reduce_sum(tf.reduce_sum(tf.tile(tf.expand_dims(tf.expand_dims(mu[t], 1), 2), [1, tf.shape(policy)[1], self.n_input]) * P_a_cur_policy, axis=2), axis=1)
+                  cur_mu = tf.reduce_sum(tf.reduce_sum(tf.tile(tf.expand_dims(tf.expand_dims(mu[t], 1), 2), [1, tf.shape(policy)[1], self.n_input]) * P_a_cur_policy, axis=1), axis=0)
                   mu.append(cur_mu)
 
       mu = tf.stack(mu)
@@ -313,7 +314,7 @@ def deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters, sparse):
   N_STATES, _, N_ACTIONS = np.shape(P_a)
 
   # init nn model
-  nn_r = DeepIRLFC(feat_map.shape[1], N_ACTIONS, lr, len(trajs[0]), 3, 3, deterministic=True, sparse=sparse)
+  nn_r = DeepIRLFC(feat_map.shape[1], N_ACTIONS, lr, len(trajs[0]), 3, 3, deterministic=False, sparse=sparse)
 
   # find state visitation frequencies using demonstrations
   mu_D = demo_svf(trajs, N_STATES)
@@ -334,7 +335,7 @@ def deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters, sparse):
     # rewards = nn_r.get_rewards(feat_map)
 
     # compute policy
-    # _, policy = value_iteration.value_iteration(P_a, rewards, gamma, error=0.01, deterministic=True)
+    # _, policy = value_iteration.value_iteration(P_a, rewards, gamma, error=0.01, deterministic=False)
 
     # compute rewards and policy at the same time
     t = time.time()
@@ -342,15 +343,15 @@ def deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters, sparse):
     #print('tensorflow VI', time.time() - t)
     
     # compute expected svf
-    #mu_exp = compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=True)
+    #mu_exp = compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=False)
 
     rewards, _, policy, mu_exp = nn_r.get_policy_svf(feat_map, P_a_t, gamma, p_start_state, 0.01)
     # compute gradients on rewards:
     grad_r = mu_D - mu_exp
 
     print(mu_exp)
-    print(compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=True))
-    print(compute_state_visition_freq_old(P_a, gamma, trajs, policy, deterministic=True))
+    print(compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=False))
+    print(compute_state_visition_freq_old(P_a, gamma, trajs, policy, deterministic=False))
 
     # apply gradients to the neural network
     grad_theta, l2_loss, grad_norm = nn_r.apply_grads(feat_map, grad_r)
