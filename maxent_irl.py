@@ -136,8 +136,7 @@ def value(policy, n_states, transition_probabilities, reward, discount,
 
     return v
 
-def expected_value_diff(P_a, rewards, true_rewards, gamma, p_start, optimal_value, error=0.01, deterministic=True):
-  _, policy = value_iteration.value_iteration(P_a, rewards, gamma, error, deterministic)
+def expected_value_diff(P_a, rewards, true_rewards, gamma, p_start, optimal_value, policy, error=0.01, deterministic=True):
   v = value(policy, P_a.shape[0], P_a.transpose(0, 2, 1), true_rewards, gamma)
 
   return optimal_value.dot(p_start) - v.dot(p_start)

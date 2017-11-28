@@ -115,17 +115,14 @@ class DeepIRLFC:
 
   def _svf(self, policy):
       if self.deterministic:
-        policy = tf.Print(policy , [(policy )], 'policy ', summarize=500)
         r = tf.range(self.n_input, dtype=tf.int64)
         expanded = tf.expand_dims(policy, 1)
         tiled = tf.tile(expanded, [1, self.n_input])
 
         grid = tf.meshgrid(r, r)
         indices = tf.stack([grid[1], grid[0], tiled], axis=2)
-        indices = tf.Print(indices, [(indices)], 'indices', summarize=500)
-        P_a = tf.Print(self.P_a , [(self.P_a )], 'self.P_a ', summarize=500)
-        P_a_cur_policy = tf.gather_nd(tf.transpose(P_a, (0, 2, 1)), indices)
-        P_a_cur_policy= tf.Print(P_a_cur_policy, [(P_a_cur_policy)], 'P_a_cur_policy', summarize=500)
+        
+        P_a_cur_policy = tf.gather_nd(tf.transpose(self.P_a, (0, 2, 1)), indices)
         P_a_cur_policy = tf.transpose(P_a_cur_policy, (1, 0))
       else:
         P_a_cur_policy = self.P_a * tf.tile(tf.expand_dims(policy, 2), [1, 1, self.n_input])
@@ -143,7 +140,6 @@ class DeepIRLFC:
                   mu.append(cur_mu)
 
       mu = tf.stack(mu)
-      mu = tf.Print(mu, [mu], 'mumuuu', summarize=500)
       return tf.reduce_sum(mu, axis=0)
 
 
@@ -286,7 +282,6 @@ def compute_state_visition_freq_old(P_a, gamma, trajs, policy, deterministic=Tru
                     [sum([mu[pre_s, t] * P_a[pre_s, s, a1] * policy[pre_s, a1] for a1 in range(N_ACTIONS)]) for pre_s in
                      range(N_STATES)])
 
-    print(mu)
     p = np.sum(mu, 1)
     return p
 
@@ -332,26 +327,33 @@ def deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters, sparse):
       print 'iteration: {}'.format(iteration)
 
     # compute the reward matrix
-    # rewards = nn_r.get_rewards(feat_map)
+    rewards = nn_r.get_rewards(feat_map)
 
     # compute policy
-    # _, policy = value_iteration.value_iteration(P_a, rewards, gamma, error=0.01, deterministic=False)
+    #_, policy = value_iteration.value_iteration(P_a, rewards, gamma, error=0.01, deterministic=False)
 
     # compute rewards and policy at the same time
-    t = time.time()
+    #t = time.time()
     #rewards, _, policy = nn_r.get_policy(feat_map, P_a_t, gamma, 0.01)
     #print('tensorflow VI', time.time() - t)
     
     # compute expected svf
     #mu_exp = compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=False)
 
-    rewards, _, policy, mu_exp = nn_r.get_policy_svf(feat_map, P_a_t, gamma, p_start_state, 0.01)
+    rewards, _, policy, mu_exp = nn_r.get_policy_svf(feat_map, P_a_t, gamma, p_start_state, 0.000001)
     # compute gradients on rewards:
     grad_r = mu_D - mu_exp
 
-    print(mu_exp)
-    print(compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=False))
-    print(compute_state_visition_freq_old(P_a, gamma, trajs, policy, deterministic=False))
+    assert_values, assert_policy = value_iteration.value_iteration(P_a, rewards, gamma, error=0.000001, deterministic=False)
+    assert_values_old, assert_policy_old = value_iteration.value_iteration_old(P_a, rewards, gamma, error=0.000001, deterministic=False)
+
+    assert (np.abs(assert_values - assert_values_old) < 0.0001).all()
+    assert (np.abs(assert_policy - assert_policy) < 0.0001).all()
+    assert (np.abs(policy - assert_policy) < 0.001).all()
+    assert (np.abs(policy - assert_policy_old) < 0.001).all()
+
+    assert (np.abs(mu_exp - compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=False)) < 0.00001).all()
+    assert (np.abs(mu_exp - compute_state_visition_freq_old(P_a, gamma, trajs, policy, deterministic=False)) < 0.00001).all()
 
     # apply gradients to the neural network
     grad_theta, l2_loss, grad_norm = nn_r.apply_grads(feat_map, grad_r)

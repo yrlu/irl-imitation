@@ -15,6 +15,66 @@ import time
 import multiprocessing
 
 
+def softmax(x):
+  """Compute softmax values for each sets of scores in x."""
+  e_x = np.exp(x - np.max(x, axis=-1)[:, np.newaxis])
+  return e_x / e_x.sum(axis=-1)[:, np.newaxis]
+
+def value_iteration_old(P_a, rewards, gamma, error=0.01, deterministic=True):
+  """
+  static value iteration function. Perhaps the most useful function in this repo
+
+  inputs:
+    P_a         NxNxN_ACTIONS transition probabilities matrix -
+                              P_a[s0, s1, a] is the transition prob of
+                              landing at state s1 when taking action
+                              a at state s0
+    rewards     Nx1 matrix - rewards for all the states
+    gamma       float - RL discount
+    error       float - threshold for a stop
+    deterministic   bool - to return deterministic policy or stochastic policy
+
+  returns:
+    values    Nx1 matrix - estimated values
+    policy    Nx1 (NxN_ACTIONS if non-det) matrix - policy
+  """
+  N_STATES, _, N_ACTIONS = np.shape(P_a)
+
+  values = np.zeros([N_STATES])
+
+  # estimate values
+  while True:
+    values_tmp = values.copy()
+
+    for s in range(N_STATES):
+      v_s = []
+      values[s] = max([sum([P_a[s, s1, a] * (rewards[s] + gamma * values_tmp[s1]) for s1 in range(N_STATES)]) for a in
+                       range(N_ACTIONS)])
+
+    if max([abs(values[s] - values_tmp[s]) for s in range(N_STATES)]) < error:
+      break
+
+  if deterministic:
+    # generate deterministic policy
+    policy = np.zeros([N_STATES])
+    for s in range(N_STATES):
+      policy[s] = np.argmax([sum([P_a[s, s1, a] * (rewards[s] + gamma * values[s1])
+                                  for s1 in range(N_STATES)])
+                             for a in range(N_ACTIONS)])
+
+    return values, policy
+  else:
+    # generate stochastic policy
+    policy = np.zeros([N_STATES, N_ACTIONS])
+    for s in range(N_STATES):
+      v_s = np.array(
+        [sum([P_a[s, s1, a] * (rewards[s] + gamma * values[s1]) for s1 in range(N_STATES)]) for a in range(N_ACTIONS)])
+      policy[s, :] = softmax(v_s).squeeze()
+
+
+  return values, policy
+
+
 def value_iteration(P_a, rewards, gamma, error=0.01, deterministic=True):
   """
   static value iteration function. Perhaps the most useful function in this repo
@@ -79,9 +139,10 @@ def value_iteration(P_a, rewards, gamma, error=0.01, deterministic=True):
 
     return values, policy
   else:
+
     # generate stochastic policy
     policy = (P * (rewards + gamma * values_tmp)).sum(axis=2)
-    policy = policy / np.sum(policy, axis=1)
+    policy = softmax(policy)
 
     print(time.time() - t)
     return values, policy
