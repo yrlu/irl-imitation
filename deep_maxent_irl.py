@@ -115,28 +115,35 @@ class DeepIRLFC:
 
   def _svf(self, policy):
       if self.deterministic:
+        policy = tf.Print(policy , [(policy )], 'policy ', summarize=500)
         r = tf.range(self.n_input, dtype=tf.int64)
-        expanded = tf.expand_dims(r, 1)
+        expanded = tf.expand_dims(policy, 1)
         tiled = tf.tile(expanded, [1, self.n_input])
-        indices = tf.stack([tiled] + tf.meshgrid(r, policy), axis=2)
-        P_a_cur_policy = tf.gather_nd(self.P_a, indices)
 
+        grid = tf.meshgrid(r, r)
+        indices = tf.stack([grid[1], grid[0], tiled], axis=2)
+        indices = tf.Print(indices, [(indices)], 'indices', summarize=500)
+        P_a = tf.Print(self.P_a , [(self.P_a )], 'self.P_a ', summarize=500)
+        P_a_cur_policy = tf.gather_nd(tf.transpose(P_a, (0, 2, 1)), indices)
+        P_a_cur_policy= tf.Print(P_a_cur_policy, [(P_a_cur_policy)], 'P_a_cur_policy', summarize=500)
       else:
         P_a_cur_policy = self.P_a * tf.tile(tf.expand_dims(policy, 2), [1, 1, self.n_input])
 
-      cur_mu = self.mu
-      mu = self.mu
+      mu = list()
+      mu.append(self.mu)
       with tf.variable_scope('svf'):
           if self.deterministic:
               for t in range(self.T - 1):
-                  cur_mu = tf.reduce_sum(cur_mu * P_a_cur_policy, axis=1)
-                  mu += cur_mu
+                  cur_mu = tf.reduce_sum(mu[t] * tf.transpose(P_a_cur_policy, (1, 0)), axis=1)
+                  mu.append(cur_mu)
           else:
               for t in range(self.T - 1):
-                  cur_mu = tf.reduce_sum(tf.reduce_sum(tf.tile(tf.expand_dims(tf.expand_dims(cur_mu, 1), 2), [1, tf.shape(policy)[1], self.n_input]) * P_a_cur_policy, axis=2), axis=1)
-                  mu += cur_mu
+                  cur_mu = tf.reduce_sum(tf.reduce_sum(tf.tile(tf.expand_dims(tf.expand_dims(mu[t], 1), 2), [1, tf.shape(policy)[1], self.n_input]) * P_a_cur_policy, axis=2), axis=1)
+                  mu.append(cur_mu)
 
-      return mu
+      mu = tf.stack(mu)
+      mu = tf.Print(mu, [mu], 'mumuuu', summarize=500)
+      return tf.reduce_sum(mu, axis=0)
 
 
   def get_theta(self):
@@ -197,6 +204,9 @@ def compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=True):
   num_cpus = multiprocessing.cpu_count()
   chunk_size = N_STATES // num_cpus
 
+  if chunk_size == 0:
+    chunk_size = N_STATES
+
   if deterministic:
     P_az = P_a[np.arange(0, N_STATES), :, policy]
   else:
@@ -211,7 +221,7 @@ def compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=True):
   with ThreadPoolExecutor(max_workers=num_cpus) as e:
     for t in range(T - 1):
       futures = list()
-      for i in range(N_STATES):
+      for i in range(0, N_STATES, chunk_size):
           futures.append(e.submit(step, t, i, min(N_STATES, i + chunk_size)))
 
       for f in futures:
@@ -274,6 +284,8 @@ def compute_state_visition_freq_old(P_a, gamma, trajs, policy, deterministic=Tru
                 mu[s, t + 1] = sum(
                     [sum([mu[pre_s, t] * P_a[pre_s, s, a1] * policy[pre_s, a1] for a1 in range(N_ACTIONS)]) for pre_s in
                      range(N_STATES)])
+
+    print(mu)
     p = np.sum(mu, 1)
     return p
 
@@ -301,7 +313,7 @@ def deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters, sparse):
   N_STATES, _, N_ACTIONS = np.shape(P_a)
 
   # init nn model
-  nn_r = DeepIRLFC(feat_map.shape[1], N_ACTIONS, lr, len(trajs), 3, 3, deterministic=True, sparse=sparse)
+  nn_r = DeepIRLFC(feat_map.shape[1], N_ACTIONS, lr, len(trajs[0]), 3, 3, deterministic=True, sparse=sparse)
 
   # find state visitation frequencies using demonstrations
   mu_D = demo_svf(trajs, N_STATES)
