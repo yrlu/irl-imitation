@@ -27,7 +27,6 @@ PARSER.add_argument('--no-rand_start', dest='rand_start',action='store_false', h
 PARSER.set_defaults(rand_start=True)
 PARSER.add_argument('-lr', '--learning_rate', default=0.02, type=float, help='learning rate')
 PARSER.add_argument('-ni', '--n_iters', default=20, type=int, help='number of iterations')
-PARSER.add_argument('-s', '--sparse', default=False, action='store_true', help='flag to use sparse tensors in tf')
 ARGS = PARSER.parse_args()
 print ARGS
 
@@ -102,7 +101,7 @@ def main():
   
   print 'Deep Max Ent IRL training ..'
   t = time.time()
-  rewards = deep_maxent_irl(feat_map, P_a, GAMMA, trajs, LEARNING_RATE, N_ITERS, ARGS.sparse)
+  rewards = deep_maxent_irl(feat_map, P_a, GAMMA, trajs, LEARNING_RATE, N_ITERS)
   print('time for dirl', time.time() - t)
 
   values, policy = value_iteration.value_iteration(P_a, rewards, GAMMA, error=0.01, deterministic=True)
