@@ -125,7 +125,7 @@ class DeepIRLFC:
               policy = tf.sparse_tensor_to_dense(
                   tf.sparse_reduce_sum_sparse(self.P_a * expected_value, axis=2))
           else:
-              policy = tf.reduce_sum(self.P_a * (rewards + self.gamma * values), axis=2)
+              policy = tf.reduce_sum(self.P_a * expected_value, axis=2)
 
           policy = tf.nn.softmax(policy)
 

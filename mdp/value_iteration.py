@@ -155,7 +155,7 @@ def value_iteration(P_a, rewards, gamma, error=0.01, deterministic=True):
     return values, policy
   else:
     # generate stochastic policy
-    policy = (P * (rewards + expected_value)).sum(axis=2)
+    policy = (P * expected_value).sum(axis=2)
     policy = softmax(policy)
 
     print(time.time() - t)
