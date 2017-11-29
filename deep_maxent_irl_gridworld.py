@@ -97,11 +97,17 @@ def main():
   feat_map = np.eye(N_STATES)
 
   trajs = generate_demonstrations(gw, policy_gt, n_trajs=N_TRAJS, len_traj=L_TRAJ, rand_start=RAND_START)
+
   
   print 'Deep Max Ent IRL training ..'
+  t = time.time()
   rewards = deep_maxent_irl(feat_map, P_a, GAMMA, trajs, LEARNING_RATE, N_ITERS)
+  print('time for dirl', time.time() - t)
 
-  values, _ = value_iteration.value_iteration(P_a, rewards, GAMMA, error=0.01, deterministic=True)
+  values, policy = value_iteration.value_iteration(P_a, rewards, GAMMA, error=0.01, deterministic=True)
+
+  #print('evd', expected_value_diff(P_a, rewards, rewards_gt, GAMMA, mu, values_gt, policy))
+
   # plots
   plt.figure(figsize=(20,4))
   plt.subplot(1, 4, 1)

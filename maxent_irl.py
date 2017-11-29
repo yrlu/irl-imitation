@@ -104,5 +104,3 @@ def maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters):
   rewards = np.dot(feat_map, theta)
   # return sigmoid(normalize(rewards))
   return normalize(rewards)
-
-
