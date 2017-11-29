@@ -327,6 +327,7 @@ def compute_state_visition_freq_old(P_a, gamma, trajs, policy, deterministic=Tru
                      range(N_STATES)])
 
     p = np.sum(mu, 1)
+    print('SUM SVF', p.sum())
     if deterministic:
         # NOTE: In the deterministic case it helps to scale the svf by T to recover the reward properly
         # I noticed that if it is not scaled by T then the recovered reward and the resulting value function
@@ -365,7 +366,7 @@ def deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters, sparse):
   N_STATES, _, N_ACTIONS = np.shape(P_a)
 
   # init nn model
-  nn_r = DeepIRLFC(feat_map.shape[1], N_ACTIONS, lr, len(trajs[0]), 3, 3, deterministic=True, sparse=sparse)
+  nn_r = DeepIRLFC(feat_map.shape[1], N_ACTIONS, lr, len(trajs[0]), 3, 3, deterministic=False, sparse=sparse)
 
   # find state visitation frequencies using demonstrations
   mu_D = demo_svf(trajs, N_STATES)
@@ -388,7 +389,7 @@ def deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters, sparse):
     # rewards = nn_r.get_rewards(feat_map)
 
     # compute policy
-    #_, policy = value_iteration.value_iteration(P_a, rewards, gamma, error=0.01, deterministic=True)
+    #_, policy = value_iteration.value_iteration(P_a, rewards, gamma, error=0.01, deterministic=False)
 
     # compute rewards and policy at the same time
     #t = time.time()
@@ -396,11 +397,11 @@ def deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters, sparse):
     #print('tensorflow VI', time.time() - t)
     
     # compute expected svf
-    #mu_exp = compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=True)
+    #mu_exp = compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=False)
 
     rewards, values, policy, mu_exp = nn_r.get_policy_svf(feat_map, P_a_t, gamma, p_start_state, 0.000001)
 
-    assert_all_the_stuff(rewards, policy, values, mu_exp, P_a, P_a_t, N_ACTIONS, N_STATES, trajs, gamma, True)
+    assert_all_the_stuff(rewards, policy, values, mu_exp, P_a, P_a_t, N_ACTIONS, N_STATES, trajs, gamma, False)
 
 
     # compute gradients on rewards:
@@ -411,9 +412,8 @@ def deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters, sparse):
     grad_theta, l2_loss, grad_norm = nn_r.apply_grads(feat_map, grad_r)
 
 
-  print(np.mean(grads, axis=0))
-  print(np.std(grads, axis=0))
-
+  print('grad mean', np.mean(grads, axis=0))
+  print('grad std', np.std(grads, axis=0))
 
   rewards = nn_r.get_rewards(feat_map)
   # return sigmoid(normalize(rewards))
