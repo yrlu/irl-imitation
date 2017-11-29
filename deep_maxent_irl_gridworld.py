@@ -99,11 +99,6 @@ def main():
 
   trajs = generate_demonstrations(gw, policy_gt, n_trajs=N_TRAJS, len_traj=L_TRAJ, rand_start=RAND_START)
 
-  mu = np.zeros([N_STATES])
-
-  for traj in trajs:
-    mu[traj[0].cur_state] += 1
-  mu = mu / len(trajs)
   
   print 'Deep Max Ent IRL training ..'
   t = time.time()
