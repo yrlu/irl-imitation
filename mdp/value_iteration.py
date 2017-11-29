@@ -17,8 +17,12 @@ import multiprocessing
 
 def softmax(x):
   """Compute softmax values for each sets of scores in x."""
-  e_x = np.exp(x - np.max(x, axis=-1)[:, np.newaxis])
-  return e_x / e_x.sum(axis=-1)[:, np.newaxis]
+  if len(x.shape) > 1:
+    e_x = np.exp(x - np.max(x, axis=-1)[:, np.newaxis])
+    return e_x / e_x.sum(axis=-1)[:, np.newaxis]
+  else:
+    e_x = np.exp(x - np.max(x))
+    return e_x / e_x.sum()
 
 def value_iteration_old(P_a, rewards, gamma, error=0.01, deterministic=True):
   """
@@ -109,6 +113,7 @@ def value_iteration(P_a, rewards, gamma, error=0.01, deterministic=True):
   if chunk_size == 0:
     chunk_size = N_STATES
 
+  rewards_expanded = rewards[:, np.newaxis].repeat(N_STATES, axis=1)
   count = 0
   # estimate values
   while True:
@@ -116,10 +121,10 @@ def value_iteration(P_a, rewards, gamma, error=0.01, deterministic=True):
     values_tmp = values.copy()
 
     def step(start, end):
-      tmp = rewards[start:end, np.newaxis].repeat(N_STATES, axis=1) + gamma * values_tmp
-      tmp = tmp[:, :, np.newaxis].repeat(N_ACTIONS, axis=2)
-      tmp = np.transpose(tmp, (0, 2, 1))
-      values[start:end] = (P[start:end, :, :] * tmp).sum(axis=2).max(axis=1)
+      expected_value = rewards_expanded[start:end, :] + gamma * values_tmp
+      expected_value = expected_value[:, :, np.newaxis].repeat(N_ACTIONS, axis=2)
+      expected_value = np.transpose(expected_value, (0, 2, 1))
+      values[start:end] = (P[start:end, :, :] * expected_value).sum(axis=2).max(axis=1)
 
     with ThreadPoolExecutor(max_workers=num_cpus) as e:
       futures = list()
@@ -137,17 +142,20 @@ def value_iteration(P_a, rewards, gamma, error=0.01, deterministic=True):
       print('VI', count)
       break
 
+  expected_value = rewards_expanded + gamma * values_tmp
+  expected_value = expected_value[:, :, np.newaxis].repeat(N_ACTIONS, axis=2)
+  expected_value = np.transpose(expected_value, (0, 2, 1))
+
+
   if deterministic:
     # generate deterministic policy
-    policy = np.argmax((P * (rewards + gamma * values_tmp)).sum(axis=2), axis=1)
-
+    policy = np.argmax((P * expected_value).sum(axis=2), axis=1)
     print(time.time() - t)
 
     return values, policy
   else:
-
     # generate stochastic policy
-    policy = (P * (rewards + gamma * values_tmp)).sum(axis=2)
+    policy = (P * (rewards + expected_value)).sum(axis=2)
     policy = softmax(policy)
 
     print(time.time() - t)

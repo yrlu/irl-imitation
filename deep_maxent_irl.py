@@ -73,6 +73,8 @@ class DeepIRLFC:
   def _vi(self, rewards):
 
       rewards = tf.Print(rewards, [rewards], 'rewards: ', summarize=500)
+      rewards_expanded = tf.tile(tf.expand_dims(rewards, 1), [1, self.n_input])
+
       P_a = tf.Print(self.P_a, [self.P_a], 'P_a: ', summarize=500)
       def body(i, c, t):
           old_values = t.read(i)
@@ -81,11 +83,10 @@ class DeepIRLFC:
                   tf.sparse_reduce_sum_sparse(self.P_a * (rewards + self.gamma * old_values), axis=2), axis=1)
           else:
             old_values = tf.Print(old_values, [old_values], 'old_values', summarize=500)
-            rewards_expanded = tf.tile(tf.expand_dims(rewards, 1), [1, self.n_input])
-            tmp = (rewards_expanded + self.gamma * old_values)
-            tmp = tf.Print(tmp, [tmp], 'tmp: ', summarize=500)
-            tmp = tf.tile(tf.expand_dims(tmp, 1), [1, tf.shape(P_a)[1], 1])
-            mm = P_a * tmp
+            expected_value = rewards_expanded + self.gamma * old_values
+            expected_value = tf.Print(expected_value, [expected_value], 'expected_value: ', summarize=500)
+            expected_value = tf.tile(tf.expand_dims(expected_value, 1), [1, tf.shape(P_a)[1], 1])
+            mm = P_a * expected_value
             mm = tf.Print(mm, [mm], 'mm', summarize=500)
 
             ss = tf.reduce_sum(mm, axis=2)
@@ -109,15 +110,20 @@ class DeepIRLFC:
                                    name='VI_loop')
       values = values.read(tf.Print(i, [i], 'i: '))
 
+      expected_value = (rewards_expanded + self.gamma * values)
+      expected_value = tf.Print(expected_value, [expected_value], 'expected_value: ', summarize=500)
+      expected_value = tf.tile(tf.expand_dims(expected_value, 1), [1, tf.shape(P_a)[1], 1])
+
       if self.deterministic:
           if self.sparse:
               policy = tf.argmax(tf.sparse_tensor_to_dense(tf.sparse_reduce_sum_sparse(self.P_a * (rewards + self.gamma * values), axis=2)), axis=1)
           else:
-              policy = tf.argmax(tf.reduce_sum(self.P_a * (rewards + self.gamma * values), axis=2), axis=1)
+
+              policy = tf.argmax(tf.reduce_sum(self.P_a * expected_value, axis=2), axis=1)
       else:
           if self.sparse:
               policy = tf.sparse_tensor_to_dense(
-                  tf.sparse_reduce_sum_sparse(self.P_a * (rewards + self.gamma * values), axis=2))
+                  tf.sparse_reduce_sum_sparse(self.P_a * expected_value, axis=2))
           else:
               policy = tf.reduce_sum(self.P_a * (rewards + self.gamma * values), axis=2)
 
@@ -321,7 +327,7 @@ def deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters, sparse):
   N_STATES, _, N_ACTIONS = np.shape(P_a)
 
   # init nn model
-  nn_r = DeepIRLFC(feat_map.shape[1], N_ACTIONS, lr, len(trajs[0]), 3, 3, deterministic=True, sparse=sparse)
+  nn_r = DeepIRLFC(feat_map.shape[1], N_ACTIONS, lr, len(trajs[0]), 3, 3, deterministic=False, sparse=sparse)
 
   # find state visitation frequencies using demonstrations
   mu_D = demo_svf(trajs, N_STATES)
@@ -342,7 +348,7 @@ def deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters, sparse):
     rewards = nn_r.get_rewards(feat_map)
 
     # compute policy
-    #_, policy = value_iteration.value_iteration(P_a, rewards, gamma, error=0.01, deterministic=True)
+    #_, policy = value_iteration.value_iteration(P_a, rewards, gamma, error=0.01, deterministic=False)
 
     # compute rewards and policy at the same time
     #t = time.time()
@@ -350,14 +356,14 @@ def deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters, sparse):
     #print('tensorflow VI', time.time() - t)
     
     # compute expected svf
-    #mu_exp = compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=True)
+    #mu_exp = compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=False)
 
     rewards, values, policy, mu_exp = nn_r.get_policy_svf(feat_map, P_a_t, gamma, p_start_state, 0.000001)
     # compute gradients on rewards:
     grad_r = mu_D - mu_exp
 
-    assert_values, assert_policy = value_iteration.value_iteration(P_a, rewards, gamma, error=0.000001, deterministic=True)
-    assert_values_old, assert_policy_old = value_iteration.value_iteration_old(P_a, rewards, gamma, error=0.000001, deterministic=True)
+    assert_values, assert_policy = value_iteration.value_iteration(P_a, rewards, gamma, error=0.000001, deterministic=False)
+    assert_values_old, assert_policy_old = value_iteration.value_iteration_old(P_a, rewards, gamma, error=0.000001, deterministic=False)
     assert_values2 = value_iteration.optimal_value(N_STATES, N_ACTIONS, P_a_t, rewards, gamma, threshold=0.000001)
 
     assert (np.abs(assert_values - assert_values2) < 0.0001).all()
@@ -369,8 +375,8 @@ def deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters, sparse):
     assert (np.abs(policy - assert_policy) < 0.001).all()
     assert (np.abs(policy - assert_policy_old) < 0.001).all()
 
-    assert (np.abs(mu_exp - compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=True)) < 0.00001).all()
-    assert (np.abs(mu_exp - compute_state_visition_freq_old(P_a, gamma, trajs, policy, deterministic=True)) < 0.00001).all()
+    assert (np.abs(mu_exp - compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=False)) < 0.00001).all()
+    assert (np.abs(mu_exp - compute_state_visition_freq_old(P_a, gamma, trajs, policy, deterministic=False)) < 0.00001).all()
 
     # apply gradients to the neural network
     grad_theta, l2_loss, grad_norm = nn_r.apply_grads(feat_map, grad_r)
