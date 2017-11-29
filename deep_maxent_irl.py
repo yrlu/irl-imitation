@@ -68,19 +68,31 @@ class DeepIRLFC:
         initializer=tf.contrib.layers.variance_scaling_initializer(mode="FAN_IN"))
       reward = tf_utils.fc(fc2, 1, scope="reward")
     theta = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=name)
-    return input_s, reward, theta
+    return input_s, tf.squeeze(reward), theta
 
   def _vi(self, rewards):
 
-      rewards = tf.squeeze(rewards)
-
+      rewards = tf.Print(rewards, [rewards], 'rewards: ', summarize=500)
+      P_a = tf.Print(self.P_a, [self.P_a], 'P_a: ', summarize=500)
       def body(i, c, t):
           old_values = t.read(i)
           if self.sparse:
               new_values = tf.sparse_reduce_max(
                   tf.sparse_reduce_sum_sparse(self.P_a * (rewards + self.gamma * old_values), axis=2), axis=1)
           else:
-            new_values = tf.reduce_max(tf.reduce_sum(self.P_a * (rewards + self.gamma * old_values), axis=2), axis=1)
+            old_values = tf.Print(old_values, [old_values], 'old_values', summarize=500)
+            rewards_expanded = tf.tile(tf.expand_dims(rewards, 1), [1, self.n_input])
+            tmp = (rewards_expanded + self.gamma * old_values)
+            tmp = tf.Print(tmp, [tmp], 'tmp: ', summarize=500)
+            tmp = tf.tile(tf.expand_dims(tmp, 1), [1, tf.shape(P_a)[1], 1])
+            mm = P_a * tmp
+            mm = tf.Print(mm, [mm], 'mm', summarize=500)
+
+            ss = tf.reduce_sum(mm, axis=2)
+            ss = tf.Print(ss, [ss], 'ss', summarize=500)
+            new_values = tf.reduce_max(ss, axis=1)
+
+          new_values = tf.Print(new_values, [new_values], 'new_values', summarize=500)
 
           c = tf.reduce_max(tf.abs(new_values - old_values)) > self.epsilon
           c.set_shape(())
@@ -95,7 +107,7 @@ class DeepIRLFC:
 
       i, _, values = tf.while_loop(condition, body, [0, True, t], parallel_iterations=1, back_prop=False,
                                    name='VI_loop')
-      values = values.read(i)
+      values = values.read(tf.Print(i, [i], 'i: '))
 
       if self.deterministic:
           if self.sparse:
@@ -346,7 +358,9 @@ def deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters, sparse):
 
     assert_values, assert_policy = value_iteration.value_iteration(P_a, rewards, gamma, error=0.000001, deterministic=True)
     assert_values_old, assert_policy_old = value_iteration.value_iteration_old(P_a, rewards, gamma, error=0.000001, deterministic=True)
+    assert_values2 = value_iteration.optimal_value(N_STATES, N_ACTIONS, P_a_t, rewards, gamma, threshold=0.000001)
 
+    assert (np.abs(assert_values - assert_values2) < 0.0001).all()
     assert (np.abs(assert_values - assert_values_old) < 0.0001).all()
     assert (np.abs(values - assert_values) < 0.0001).all()
     assert (np.abs(values - assert_values_old) < 0.0001).all()

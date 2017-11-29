@@ -104,39 +104,3 @@ def maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters):
   rewards = np.dot(feat_map, theta)
   # return sigmoid(normalize(rewards))
   return normalize(rewards)
-
-def value(policy, n_states, transition_probabilities, reward, discount,
-                    threshold=1e-2):
-    """
-    FROM https://github.com/MatthewJA/Inverse-Reinforcement-Learning/blob/master/irl/value_iteration.py#L10
-
-    Find the value function associated with a policy.
-
-    policy: List of action ints for each state.
-    n_states: Number of states. int.
-    transition_probabilities: Function taking (state, action, state) to
-        transition probabilities.
-    reward: Vector of rewards for each state.
-    discount: MDP discount factor. float.
-    threshold: Convergence threshold, default 1e-2. float.
-    -> Array of values for each state
-    """
-    v = np.zeros(n_states)
-
-    diff = float("inf")
-    while diff > threshold:
-        diff = 0
-        for s in range(n_states):
-            vs = v[s]
-            a = policy[s]
-            v[s] = sum(transition_probabilities[s, a, k] *
-                       (reward[k] + discount * v[k])
-                       for k in range(n_states))
-            diff = max(diff, abs(vs - v[s]))
-
-    return v
-
-def expected_value_diff(P_a, rewards, true_rewards, gamma, p_start, optimal_value, policy, error=0.01, deterministic=True):
-  v = value(policy, P_a.shape[0], P_a.transpose(0, 2, 1), true_rewards, gamma)
-
-  return optimal_value.dot(p_start) - v.dot(p_start)

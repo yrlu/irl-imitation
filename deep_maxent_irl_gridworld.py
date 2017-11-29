@@ -112,7 +112,7 @@ def main():
 
   values, policy = value_iteration.value_iteration(P_a, rewards, GAMMA, error=0.01, deterministic=True)
 
-  print('evd', expected_value_diff(P_a, rewards, rewards_gt, GAMMA, mu, values_gt, policy))
+  #print('evd', expected_value_diff(P_a, rewards, rewards_gt, GAMMA, mu, values_gt, policy))
 
   # plots
   plt.figure(figsize=(20,4))
