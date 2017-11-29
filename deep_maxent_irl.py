@@ -72,28 +72,21 @@ class DeepIRLFC:
 
   def _vi(self, rewards):
 
-      rewards = tf.Print(rewards, [rewards], 'rewards: ', summarize=500)
       rewards_expanded = tf.tile(tf.expand_dims(rewards, 1), [1, self.n_input])
 
-      P_a = tf.Print(self.P_a, [self.P_a], 'P_a: ', summarize=500)
       def body(i, c, t):
           old_values = t.read(i)
           if self.sparse:
               new_values = tf.sparse_reduce_max(
                   tf.sparse_reduce_sum_sparse(self.P_a * (rewards + self.gamma * old_values), axis=2), axis=1)
           else:
-            old_values = tf.Print(old_values, [old_values], 'old_values', summarize=500)
             expected_value = rewards_expanded + self.gamma * old_values
-            expected_value = tf.Print(expected_value, [expected_value], 'expected_value: ', summarize=500)
-            expected_value = tf.tile(tf.expand_dims(expected_value, 1), [1, tf.shape(P_a)[1], 1])
-            mm = P_a * expected_value
-            mm = tf.Print(mm, [mm], 'mm', summarize=500)
+            expected_value = tf.tile(tf.expand_dims(expected_value, 1), [1, tf.shape(self.P_a)[1], 1])
+            mm = self.P_a * expected_value
 
             ss = tf.reduce_sum(mm, axis=2)
-            ss = tf.Print(ss, [ss], 'ss', summarize=500)
             new_values = tf.reduce_max(ss, axis=1)
 
-          new_values = tf.Print(new_values, [new_values], 'new_values', summarize=500)
 
           c = tf.reduce_max(tf.abs(new_values - old_values)) > self.epsilon
           c.set_shape(())
@@ -108,11 +101,10 @@ class DeepIRLFC:
 
       i, _, values = tf.while_loop(condition, body, [0, True, t], parallel_iterations=1, back_prop=False,
                                    name='VI_loop')
-      values = values.read(tf.Print(i, [i], 'i: '))
+      values = values.read(i)
 
       expected_value = rewards_expanded + self.gamma * values
-      expected_value = tf.Print(expected_value, [expected_value], 'expected_value: ', summarize=500)
-      expected_value = tf.tile(tf.expand_dims(expected_value, 1), [1, tf.shape(P_a)[1], 1])
+      expected_value = tf.tile(tf.expand_dims(expected_value, 1), [1, tf.shape(self.P_a)[1], 1])
 
       if self.deterministic:
           if self.sparse:
@@ -366,7 +358,7 @@ def deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters, sparse):
   N_STATES, _, N_ACTIONS = np.shape(P_a)
 
   # init nn model
-  nn_r = DeepIRLFC(feat_map.shape[1], N_ACTIONS, lr, len(trajs[0]), 3, 3, deterministic=False, sparse=sparse)
+  nn_r = DeepIRLFC(feat_map.shape[1], N_ACTIONS, lr, len(trajs[0]), 3, 3, deterministic=True, sparse=sparse)
 
   # find state visitation frequencies using demonstrations
   mu_D = demo_svf(trajs, N_STATES)
@@ -389,7 +381,7 @@ def deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters, sparse):
     # rewards = nn_r.get_rewards(feat_map)
 
     # compute policy
-    #_, policy = value_iteration.value_iteration(P_a, rewards, gamma, error=0.01, deterministic=False)
+    #_, policy = value_iteration.value_iteration(P_a, rewards, gamma, error=0.01, deterministic=True)
 
     # compute rewards and policy at the same time
     #t = time.time()
@@ -397,11 +389,11 @@ def deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters, sparse):
     #print('tensorflow VI', time.time() - t)
     
     # compute expected svf
-    #mu_exp = compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=False)
+    #mu_exp = compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=True)
 
     rewards, values, policy, mu_exp = nn_r.get_policy_svf(feat_map, P_a_t, gamma, p_start_state, 0.000001)
 
-    assert_all_the_stuff(rewards, policy, values, mu_exp, P_a, P_a_t, N_ACTIONS, N_STATES, trajs, gamma, False)
+    assert_all_the_stuff(rewards, policy, values, mu_exp, P_a, P_a_t, N_ACTIONS, N_STATES, trajs, gamma, True)
 
 
     # compute gradients on rewards:
@@ -444,6 +436,8 @@ def assert_all_the_stuff(rewards, policy, values, mu_exp, P_a, P_a_t, N_ACTIONS,
     assert (np.abs(mu_exp - compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=deterministic)) < 0.00001).all()
     assert (
     np.abs(mu_exp - compute_state_visition_freq_old(P_a, gamma, trajs, policy, deterministic=deterministic)) < 0.00001).all()
+    
+    print('tf sum SVF', mu_exp.sum())
 
 
 
