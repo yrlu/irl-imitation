@@ -113,7 +113,10 @@ def value_iteration(P_a, rewards, gamma, error=0.01, deterministic=True):
     values_tmp = values.copy()
 
     def step(start, end):
-      values[start:end] = (P[start:end, :, :] * (rewards + gamma * values_tmp)).sum(axis=2).max(axis=1)
+      tmp = rewards[start:end, np.newaxis].repeat(N_STATES, axis=1) + gamma * values_tmp
+      tmp = tmp[:, :, np.newaxis].repeat(N_ACTIONS, axis=2)
+      tmp = np.transpose(tmp, (0, 2, 1))
+      values[start:end] = (P[start:end, :, :] * tmp).sum(axis=2).max(axis=1)
 
     with ThreadPoolExecutor(max_workers=num_cpus) as e:
       futures = list()
