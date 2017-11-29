@@ -139,7 +139,9 @@ def value_iteration(P_a, rewards, gamma, error=0.01, deterministic=True):
       print('VI', count)
       break
 
-  expected_value = rewards_expanded + gamma * values_tmp
+  expected_value = rewards_expanded + gamma * values
+  print(expected_value)
+
   expected_value = expected_value[:, :, np.newaxis].repeat(N_ACTIONS, axis=2)
   expected_value = np.transpose(expected_value, (0, 2, 1))
 
