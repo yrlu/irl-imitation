@@ -1,5 +1,5 @@
 # irl-imitation
-Implementations of selected Inverse Reinforcement Learning (IRL) algorithms in python/Tensorflow. Mainly for educational purpose. (WIP)
+Implementation of selected Inverse Reinforcement Learning (IRL) algorithms in python/Tensorflow. Mainly for educational purpose. 
 
 ```
 python demo.py
