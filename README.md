@@ -20,7 +20,7 @@ python demo.py
 - value iteration
 
 
-Please cite this work use the following bibtex if you use the software in your publications
+Please cite this work using the following bibtex if you use the software in your publications
 
 ```
 @software{Lu_Implementation_of_Inverse_2022,
