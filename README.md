@@ -30,7 +30,7 @@ Please cite this work using the following bibtex if you use the software in your
   title = {{yrlu/irl-imitation: Implementation of Inverse Reinforcement Learning (IRL) algorithms in python/Tensorflow}},
   url = {https://github.com/yrlu/irl-imitation},
   version = {1.0.0},
-  year = {2022}
+  year = {2017}
 }
 ```
 
