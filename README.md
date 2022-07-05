@@ -7,7 +7,20 @@ python demo.py
 
 <img src="imgs/cmp.jpg" width="830">
 
-Please cite this work use the following bibtex if you use the software in your publications:
+##### Algorithms implemented 
+
+- Linear inverse reinforcement learning (Ng & Russell 2000)
+- Maximum entropy inverse reinforcement learning (Ziebart et al. 2008)
+- Maximum entropy deep inverse reinforcement learning (Wulfmeier et al. 2015)
+
+##### MDP & solver implemented
+
+- gridworld 2D
+- gridworld 1D
+- value iteration
+
+
+Please cite this work use the following bibtex if you use the software in your publications
 
 ```
 @software{Lu_Implementation_of_Inverse_2022,
@@ -20,18 +33,6 @@ Please cite this work use the following bibtex if you use the software in your p
   year = {2022}
 }
 ```
-
-##### Algorithms implemented 
-
-- Linear inverse reinforcement learning (Ng & Russell 2000)
-- Maximum entropy inverse reinforcement learning (Ziebart et al. 2008)
-- Maximum entropy deep inverse reinforcement learning (Wulfmeier et al. 2015)
-
-##### MDP & solver implemented
-
-- gridworld 2D
-- gridworld 1D
-- value iteration
 
 #### Dependencies
 
