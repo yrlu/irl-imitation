@@ -23,11 +23,11 @@ python demo.py
 Please cite this work using the following bibtex if you use the software in your publications
 
 ```
-@software{Lu_Implementation_of_Inverse_2022,
+@software{Lu_yrlu_irl-imitation_Implementation_of_2022,
   author = {Lu, Yiren},
   doi = {10.5281/zenodo.6796157},
   month = {7},
-  title = {{Implementation of Inverse Reinforcement Learning (IRL) algorithms in python/Tensorflow}},
+  title = {{yrlu/irl-imitation: Implementation of Inverse Reinforcement Learning (IRL) algorithms in python/Tensorflow}},
   url = {https://github.com/yrlu/irl-imitation},
   version = {1.0.0},
   year = {2022}
