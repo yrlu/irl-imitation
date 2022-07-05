@@ -4,7 +4,7 @@ authors:
 - family-names: "Lu"
   given-names: "Yiren"
   orcid: "https://orcid.org/0000-0002-7924-2488"
-title: "Implementation of Inverse Reinforcement Learning (IRL) algorithms in python/Tensorflow"
+title: "yrlu/irl-imitation: Implementation of Inverse Reinforcement Learning (IRL) algorithms in python/Tensorflow"
 version: 1.0.0
 doi: 10.5281/zenodo.6796157
 date-released: 2022-07-04
