@@ -9,20 +9,19 @@ python demo.py
 
 <img src="imgs/cmp.jpg" width="830">
 
-##### Algorithms implemented 
+##### Implemented Algorithms
 
-- Linear inverse reinforcement learning (Ng & Russell 2000)
-- Maximum entropy inverse reinforcement learning (Ziebart et al. 2008)
-- Maximum entropy deep inverse reinforcement learning (Wulfmeier et al. 2015)
+- Linear inverse reinforcement learning (Ng & Russell, 2000)
+- Maximum entropy inverse reinforcement learning (Ziebart et al., 2008)
+- Maximum entropy deep inverse reinforcement learning (Wulfmeier et al., 2015)
 
-##### MDP & solver implemented
+##### Implemented MDPs & Solver
 
-- gridworld 2D
-- gridworld 1D
-- value iteration
+- 2D gridworld
+- 1D gridworld
+- Value iteration
 
-
-Please cite this work using the following bibtex if you use the software in your publications
+If you use this software in your publications, please cite it using the following BibTeX entry:
 
 ```
 @misc{lu2017irl-imitation,
