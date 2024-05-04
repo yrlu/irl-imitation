@@ -28,7 +28,7 @@ If you use this software in your publications, please cite it using the followin
   author = {Lu, Yiren},
   doi = {10.5281/zenodo.6796157},
   month = {7},
-  title = {{yrlu/irl-imitation: Implementation of Inverse Reinforcement Learning algorithms in python/Tensorflow}},
+  title = {{yrlu/irl-imitation: Implementations of inverse reinforcement learning algorithms in python/Tensorflow}},
   url = {https://github.com/yrlu/irl-imitation},
   year = {2017}
 }
