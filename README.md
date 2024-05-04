@@ -1,6 +1,8 @@
 # irl-imitation
 Implementation of selected Inverse Reinforcement Learning (IRL) algorithms in python/Tensorflow.
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6796157.svg)](https://doi.org/10.5281/zenodo.6796157)
+
 ```
 python demo.py
 ```
