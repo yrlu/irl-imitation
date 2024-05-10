@@ -2,7 +2,7 @@
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6796157.svg)](https://doi.org/10.5281/zenodo.6796157)
 
-Implementation of selected Inverse Reinforcement Learning (IRL) algorithms in python/Tensorflow.
+Implementation of selected Inverse Reinforcement Learning (IRL) algorithms in Python/Tensorflow.
 
 ```bash
 $ python demo.py
@@ -29,7 +29,7 @@ If you use this software in your publications, please cite it using the followin
   author = {Lu, Yiren},
   doi = {10.5281/zenodo.6796157},
   month = {7},
-  title = {{Implementations of inverse reinforcement learning algorithms in python/Tensorflow}},
+  title = {{Implementations of inverse reinforcement learning algorithms in Python/Tensorflow}},
   url = {https://github.com/yrlu/irl-imitation},
   year = {2017}
 }
